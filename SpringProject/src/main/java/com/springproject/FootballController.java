@@ -20,24 +20,38 @@ import java.util.*;
 
 @Controller
 public class FootballController {
+    private final FixtureRepository fixtureRepository;
+    private final TeamsStatisticsRepository teamStatisticsRepository;
+    private final PlayersSquadsRepository playersSquadsRepository;
+    private final VenuesInfoRepository venuesInfoRepository;
+    private final EventsRepository eventsRepository;
+    private final HeadToHeadRepository headToHeadRepository;
+    private final MainLineupsRepository mainLineupsRepository;
+    private final StartXILineupsRepository startXILineupsRepository;
+    private final SubstitutesLineupsRepository substitutesLineupsRepository;
+
     @Autowired
-    private FixtureRepository fixtureRepository;
-    @Autowired
-    private TeamsStatisticsRepository teamStatisticsRepository;
-    @Autowired
-    private PlayersSquadsRepository playersSquadsRepository;
-    @Autowired
-    private VenuesInfoRepository venuesInfoRepository;
-    @Autowired
-    private EventsRepository eventsRepository;
-    @Autowired
-    private HeadToHeadRepository headToHeadRepository;
-    @Autowired
-    private MainLineupsRepository mainLineupsRepository;
-    @Autowired
-    private StartXILineupsRepository startXILineupsRepository;
-    @Autowired
-    private SubstitutesLineupsRepository substitutesLineupsRepository;
+    public FootballController(
+            FixtureRepository fixtureRepository,
+            TeamsStatisticsRepository teamStatisticsRepository,
+            PlayersSquadsRepository playersSquadsRepository,
+            VenuesInfoRepository venuesInfoRepository,
+            EventsRepository eventsRepository,
+            HeadToHeadRepository headToHeadRepository,
+            MainLineupsRepository mainLineupsRepository,
+            StartXILineupsRepository startXILineupsRepository,
+            SubstitutesLineupsRepository substitutesLineupsRepository) {
+        this.fixtureRepository = fixtureRepository;
+        this.teamStatisticsRepository = teamStatisticsRepository;
+        this.playersSquadsRepository = playersSquadsRepository;
+        this.venuesInfoRepository = venuesInfoRepository;
+        this.eventsRepository = eventsRepository;
+        this.headToHeadRepository = headToHeadRepository;
+        this.mainLineupsRepository = mainLineupsRepository;
+        this.startXILineupsRepository = startXILineupsRepository;
+        this.substitutesLineupsRepository = substitutesLineupsRepository;
+    }
+
     private LocalDateTime lastUpdateTimestamp;
     private static final Duration REFRESH_INTERVAL = Duration.ofHours(1);
     private Map<String, Object> result = new HashMap<>();

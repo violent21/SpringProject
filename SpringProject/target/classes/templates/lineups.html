@@ -7,10 +7,8 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
     <style>
         .pitchBody {
-            /*margin: 0;*/
             display: flex;
             justify-content: center;
-            /*align-items: center;*/
             height: 100vh;
         }
 
@@ -261,59 +259,7 @@
         </div>
 
     </div>
-<!--    <div class="teamsTables">-->
-<!--        &lt;!&ndash; Табличка для первой команды &ndash;&gt;-->
-<!--        <div style="float: left; margin-right: 50px;">-->
-<!--            <h3 th:text="${team1Name} + ' - ' + ${team1CoachName}"></h3>-->
-<!--            <table>-->
-<!--                <thead>-->
-<!--                <tr>-->
-<!--                    <th>Number</th>-->
-<!--                    <th>Name</th>-->
-<!--                </tr>-->
-<!--                </thead>-->
-<!--                <tbody>-->
-<!--                &lt;!&ndash; Starting XI Team1 &ndash;&gt;-->
-<!--                <tr th:each="player : ${startXILineupsTeam1}">-->
-<!--                    <td th:text="${player.playerNumber}"></td>-->
-<!--                    <td th:text="${player.playerName}"></td>-->
-<!--                </tr>-->
-<!--                &lt;!&ndash; Substitutes Team1 &ndash;&gt;-->
-<!--                <tr th:each="player : ${substitutesPlayersTeam1}">-->
-<!--                    <td th:text="${player.playerNumber}"></td>-->
-<!--                    <td th:text="${player.playerName}"></td>-->
-<!--                </tr>-->
-<!--                </tbody>-->
-<!--            </table>-->
-<!--        </div>-->
-
-<!--        &lt;!&ndash; Табличка для второй команды &ndash;&gt;-->
-<!--        <div style="float: left;">-->
-<!--            <h3 th:text="${team2Name} + ' - ' + ${team2CoachName}"></h3>-->
-<!--            <table border="1">-->
-<!--                <thead>-->
-<!--                <tr>-->
-<!--                    <th>Number</th>-->
-<!--                    <th>Name</th>-->
-<!--                </tr>-->
-<!--                </thead>-->
-<!--                <tbody>-->
-<!--                &lt;!&ndash; Starting XI Team2 &ndash;&gt;-->
-<!--                <tr th:each="player : ${startXILineupsTeam2}">-->
-<!--                    <td th:text="${player.playerNumber}"></td>-->
-<!--                    <td th:text="${player.playerName}"></td>-->
-<!--                </tr>-->
-<!--                &lt;!&ndash; Substitutes Team2 &ndash;&gt;-->
-<!--                <tr th:each="player : ${substitutesPlayersTeam2}">-->
-<!--                    <td th:text="${player.playerNumber}"></td>-->
-<!--                    <td th:text="${player.playerName}"></td>-->
-<!--                </tr>-->
-<!--                </tbody>-->
-<!--            </table>-->
-<!--        </div>-->
-<!--    </div>-->
     <div class="teamsTables">
-        <!-- Табличка для первой команды -->
         <div style="float: left; margin-right: -700px;">
             <h3 th:text="'Coach: ' + ${team1CoachName}"></h3>
             <div class="table-header">Starting XI</div>
@@ -325,7 +271,6 @@
                 </tr>
                 </thead>
                 <tbody>
-                <!-- Starting XI Team1 -->
                 <tr th:each="player : ${startXILineupsTeam1}">
                     <td th:text="${player.playerNumber}"></td>
                     <td th:text="${player.playerName}"></td>
@@ -341,7 +286,6 @@
                 </tr>
                 </thead>
                 <tbody>
-                <!-- Substitutes Team1 -->
                 <tr th:each="player : ${substitutesPlayersTeam1}">
                     <td th:text="${player.playerNumber}"></td>
                     <td th:text="${player.playerName}"></td>
@@ -350,7 +294,6 @@
             </table>
         </div>
 
-        <!-- Табличка для второй команды -->
         <div style="float: left;">
             <h3 th:text="'Coach: ' + ${team2CoachName}"></h3>
             <div class="table-header">Starting XI</div>
@@ -362,7 +305,6 @@
                 </tr>
                 </thead>
                 <tbody>
-                <!-- Starting XI Team2 -->
                 <tr th:each="player : ${startXILineupsTeam2}">
                     <td th:text="${player.playerNumber}"></td>
                     <td th:text="${player.playerName}"></td>
@@ -378,7 +320,6 @@
                 </tr>
                 </thead>
                 <tbody>
-                <!-- Substitutes Team2 -->
                 <tr th:each="player : ${substitutesPlayersTeam2}">
                     <td th:text="${player.playerNumber}"></td>
                     <td th:text="${player.playerName}"></td>
@@ -387,7 +328,6 @@
             </table>
         </div>
     </div>
-
 </main>
 </body>
 </html>
