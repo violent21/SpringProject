@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Last 5 matches</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        .matchLine {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .match-infoLine, .team-detailsLine {
+            text-align: center;
+        }
+
+        .team-detailsLine {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .team-logoLine {
+            width: 100px;
+            height: 100px;
+        }
+
+        .team-nameLine {
+            font-size: 35px;
+            display: inline-block;
+            vertical-align: top;
+            margin-top: 40px;
+            margin-left: 200px;
+            margin-right: 200px;
+        }
+
+        .scoreLine {
+            font-weight: bold;
+            font-size: 25px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+
+</head>
+<body>
+
+<h2>Last 5 matches</h2>
+<div th:each="match : ${headToHeadList}" class="matchLine">
+    <div class="match-infoLine">
+        <div style="background-color: lightgray; font-size: 20px"
+             th:text="${match.formattedDate} + ', ' + ${match.venueName} + ', ' + ${match.venueCity}"></div>
+    </div>
+    <div class="team-detailsLine">
+        <div class="teamLine">
+            <img th:src="${match.homeTeamLogo}" alt="Home Team Logo" class="team-logoLine"/>
+            <div class="team-nameLine" th:text="${match.homeTeamName}"></div>
+        </div>
+        <div class="score-container">
+            <span class="scoreLine" th:text="${match.homeGoals} + ' - ' + ${match.awayGoals}"></span>
+        </div>
+        <div class="teamLine">
+            <div class="team-nameLine" th:text="${match.awayTeamName}"></div>
+            <img th:src="${match.awayTeamLogo}" alt="Away Team Logo" class="team-logoLine"/>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
