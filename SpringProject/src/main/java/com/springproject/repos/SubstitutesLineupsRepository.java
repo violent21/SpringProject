@@ -1,6 +1,5 @@
 package com.springproject.repos;
 
-import com.springproject.model.StartXILineups;
 import com.springproject.model.SubstitutesLineups;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

@@ -11,7 +11,7 @@ import org.springframework.data.annotation.Id;
 @NoArgsConstructor
 @Table(name = "startXI_lineups")
 @Entity
-public class StartXILineups {
+public class StartXILineups{
     @jakarta.persistence.Id
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,5 +38,4 @@ public class StartXILineups {
 
     @Column(name = "player_grid", nullable = false)
     private String playerGrid;
-
 }

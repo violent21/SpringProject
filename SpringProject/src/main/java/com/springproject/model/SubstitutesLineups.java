@@ -38,5 +38,4 @@ public class SubstitutesLineups {
 
     @Column(name = "player_grid", nullable = false)
     private String playerGrid;
-
 }

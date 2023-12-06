@@ -5,6 +5,8 @@ import com.springproject.repos.*;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
@@ -68,6 +70,7 @@ public class FootballController {
     private static final String PLAYER_KEY = "player";
     private static final String NUMBER_KEY = "number";
     private static final String PAGE_NOT_FOUND = "page_not_found";
+    private static final Logger logger = LoggerFactory.getLogger(FootballController.class);
     public Map<String, Object> fetchDataFromApi(String league, String season, String fromDate, String toDate) {
 
         String endpoint = "fixtures?league=" + league + "&season=" + season + "&from=" + fromDate + "&to=" + toDate;
@@ -406,7 +409,7 @@ public class FootballController {
                         player.setPlayerId(String.valueOf(playerData.get("id")));
                         player.setPlayerName(String.valueOf(playerData.get("name")));
                         player.setPlayerAge(String.valueOf(playerData.get("age")));
-                        player.setPlayerNumber(String.valueOf(playerData.get("number")));
+                        player.setPlayerNumber(String.valueOf(playerData.get(NUMBER_KEY)));
                         player.setPlayerPosition(String.valueOf(playerData.get("position")));
                         player.setPlayerPhoto(String.valueOf(playerData.get("photo")));
 
@@ -418,78 +421,174 @@ public class FootballController {
     }
 
     private void saveStatisticsToDatabase(long fixtureId) {
-        List<Map<String, Object>> statistics = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
+        List<Map<String, Object>> statistics = getStatisticsFromProcessingMap();
         if (statistics != null) {
             for (Map<String, Object> statisticsData : statistics) {
-                Map<String, Object> team = (Map<String, Object>) statisticsData.get("team");
-                List<Map<String, Object>> statisticsList = (List<Map<String, Object>>) statisticsData.get("statistics");
-
-                TeamsStatistics teamStatistics = new TeamsStatistics();
-                teamStatistics.setFixtureId(fixtureId);
-                teamStatistics.setTeamId(Long.valueOf(String.valueOf(team.get("id"))));
-                teamStatistics.setTeamName(String.valueOf(team.get("name")));
-                for (Map<String, Object> statData : statisticsList) {
-                    String type = (String) statData.get("type");
-                    String value = String.valueOf(statData.get("value"));
-
-                    switch (type) {
-                        case "Shots on Goal":
-                            teamStatistics.setShotsOnGoal(value);
-                            break;
-                        case "Shots off Goal":
-                            teamStatistics.setShotsOffGoal(value);
-                            break;
-                        case "Total Shots":
-                            teamStatistics.setTotalShots(value);
-                            break;
-                        case "Blocked Shots":
-                            teamStatistics.setBlockedShots(value);
-                            break;
-                        case "Shots insidebox":
-                            teamStatistics.setShotsInsidebox(value);
-                            break;
-                        case "Shots outsidebox":
-                            teamStatistics.setShotsOutsidebox(value);
-                            break;
-                        case "Fouls":
-                            teamStatistics.setFouls(value);
-                            break;
-                        case "Corner Kicks":
-                            teamStatistics.setCornerKicks(value);
-                            break;
-                        case "Offsides":
-                            teamStatistics.setOffsides(value);
-                            break;
-                        case "Ball Possession":
-                            teamStatistics.setBallPossession(value);
-                            break;
-                        case "Yellow Cards":
-                            teamStatistics.setYellowCards(value);
-                            break;
-                        case "Red Cards":
-                            teamStatistics.setRedCards(value);
-                            break;
-                        case "Goalkeeper Saves":
-                            teamStatistics.setGoalkeeperSaves(value);
-                            break;
-                        case "Total passes":
-                            teamStatistics.setTotalPasses(value);
-                            break;
-                        case "Passes accurate":
-                            teamStatistics.setPassesAccurate(value);
-                            break;
-                        case "Passes %":
-                            teamStatistics.setPassesPrcnt(value);
-                            break;
-                        default:
-                            System.out.println("Unhandled type: " + type);
-                            break;
-                    }
-                }
-                teamStatisticsRepository.save(teamStatistics);
+                TeamsStatistics teamStatistics = createTeamsStatistics(fixtureId, statisticsData);
+                saveTeamStatistics(teamStatistics);
             }
         }
     }
+
+    private List<Map<String, Object>> getStatisticsFromProcessingMap() {
+        return (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
+    }
+
+    private TeamsStatistics createTeamsStatistics(long fixtureId, Map<String, Object> statisticsData) {
+        TeamsStatistics teamStatistics = new TeamsStatistics();
+        Map<String, Object> team = (Map<String, Object>) statisticsData.get("team");
+        teamStatistics.setFixtureId(fixtureId);
+        teamStatistics.setTeamId(Long.valueOf(String.valueOf(team.get("id"))));
+        teamStatistics.setTeamName(String.valueOf(team.get("name")));
+        processStatisticsList(teamStatistics, (List<Map<String, Object>>) statisticsData.get("statistics"));
+        return teamStatistics;
+    }
+
+    private void processStatisticsList(TeamsStatistics teamStatistics, List<Map<String, Object>> statisticsList) {
+        for (Map<String, Object> statData : statisticsList) {
+            String type = (String) statData.get("type");
+            String value = String.valueOf(statData.get("value"));
+            processStatisticType(teamStatistics, type, value);
+        }
+    }
+
+    private void processStatisticType(TeamsStatistics teamStatistics, String type, String value) {
+        switch (type) {
+            case "Shots on Goal":
+                teamStatistics.setShotsOnGoal(value);
+                break;
+            case "Shots off Goal":
+                teamStatistics.setShotsOffGoal(value);
+                break;
+            case "Total Shots":
+                teamStatistics.setTotalShots(value);
+                break;
+            case "Blocked Shots":
+                teamStatistics.setBlockedShots(value);
+                break;
+            case "Shots insidebox":
+                teamStatistics.setShotsInsidebox(value);
+                break;
+            case "Shots outsidebox":
+                teamStatistics.setShotsOutsidebox(value);
+                break;
+            case "Fouls":
+                teamStatistics.setFouls(value);
+                break;
+            case "Corner Kicks":
+                teamStatistics.setCornerKicks(value);
+                break;
+            case "Offsides":
+                teamStatistics.setOffsides(value);
+                break;
+            case "Ball Possession":
+                teamStatistics.setBallPossession(value);
+                break;
+            case "Yellow Cards":
+                teamStatistics.setYellowCards(value);
+                break;
+            case "Red Cards":
+                teamStatistics.setRedCards(value);
+                break;
+            case "Goalkeeper Saves":
+                teamStatistics.setGoalkeeperSaves(value);
+                break;
+            case "Total passes":
+                teamStatistics.setTotalPasses(value);
+                break;
+            case "Passes accurate":
+                teamStatistics.setPassesAccurate(value);
+                break;
+            case "Passes %":
+                teamStatistics.setPassesPrcnt(value);
+                break;
+            default:
+                handleUnhandledType(type);
+                break;
+        }
+    }
+
+    private void handleUnhandledType(String type) {
+        logger.warn("Unhandled type: {}", type);
+    }
+
+    private void saveTeamStatistics(TeamsStatistics teamStatistics) {
+        teamStatisticsRepository.save(teamStatistics);
+    }
+
+//    private void saveStatisticsToDatabase(long fixtureId) {
+//        List<Map<String, Object>> statistics = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
+//        if (statistics != null) {
+//            for (Map<String, Object> statisticsData : statistics) {
+//                Map<String, Object> team = (Map<String, Object>) statisticsData.get("team");
+//                List<Map<String, Object>> statisticsList = (List<Map<String, Object>>) statisticsData.get("statistics");
+//
+//                TeamsStatistics teamStatistics = new TeamsStatistics();
+//                teamStatistics.setFixtureId(fixtureId);
+//                teamStatistics.setTeamId(Long.valueOf(String.valueOf(team.get("id"))));
+//                teamStatistics.setTeamName(String.valueOf(team.get("name")));
+//                for (Map<String, Object> statData : statisticsList) {
+//                    String type = (String) statData.get("type");
+//                    String value = String.valueOf(statData.get("value"));
+//
+//                    switch (type) {
+//                        case "Shots on Goal":
+//                            teamStatistics.setShotsOnGoal(value);
+//                            break;
+//                        case "Shots off Goal":
+//                            teamStatistics.setShotsOffGoal(value);
+//                            break;
+//                        case "Total Shots":
+//                            teamStatistics.setTotalShots(value);
+//                            break;
+//                        case "Blocked Shots":
+//                            teamStatistics.setBlockedShots(value);
+//                            break;
+//                        case "Shots insidebox":
+//                            teamStatistics.setShotsInsidebox(value);
+//                            break;
+//                        case "Shots outsidebox":
+//                            teamStatistics.setShotsOutsidebox(value);
+//                            break;
+//                        case "Fouls":
+//                            teamStatistics.setFouls(value);
+//                            break;
+//                        case "Corner Kicks":
+//                            teamStatistics.setCornerKicks(value);
+//                            break;
+//                        case "Offsides":
+//                            teamStatistics.setOffsides(value);
+//                            break;
+//                        case "Ball Possession":
+//                            teamStatistics.setBallPossession(value);
+//                            break;
+//                        case "Yellow Cards":
+//                            teamStatistics.setYellowCards(value);
+//                            break;
+//                        case "Red Cards":
+//                            teamStatistics.setRedCards(value);
+//                            break;
+//                        case "Goalkeeper Saves":
+//                            teamStatistics.setGoalkeeperSaves(value);
+//                            break;
+//                        case "Total passes":
+//                            teamStatistics.setTotalPasses(value);
+//                            break;
+//                        case "Passes accurate":
+//                            teamStatistics.setPassesAccurate(value);
+//                            break;
+//                        case "Passes %":
+//                            teamStatistics.setPassesPrcnt(value);
+//                            break;
+//                        default:
+//                            logger.warn("Unhandled type: {}", type);
+//                            break;
+//                    }
+//                }
+//                teamStatisticsRepository.save(teamStatistics);
+//            }
+//        }
+//    }
 
 //    private void saveDataToDatabase(Map<String, Object> data) {
 //        fixtureRepository.deleteAll();
@@ -651,19 +750,19 @@ public class FootballController {
 
     @GetMapping("/matches")
     public String showMatches(Model model) {
-        if (isDataStale()) {
-            mainMapResult = fetchDataFromApi(league, season, fromDate, toDate);
-            if (mainMapResult != null) {
-                saveDataToDatabase(mainMapResult);
+//        if (isDataStale()) {
+//            mainMapResult = fetchDataFromApi(league, season, fromDate, toDate);
+//            if (mainMapResult != null) {
+//                saveDataToDatabase(mainMapResult);
 //                processFixtureStatistics();
 //                processPlayersSquads();
 //                processVenuesInfo();
 //                processEvents();
 //                processHeadToHead();
 //                processLineups();
-                lastUpdateTimestamp = LocalDateTime.now();
-            }
-        }
+//                lastUpdateTimestamp = LocalDateTime.now();
+//            }
+//        }
 
         List<Fixture> matches = fixtureRepository.findAll();
 
