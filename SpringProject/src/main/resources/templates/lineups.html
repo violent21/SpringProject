@@ -34,14 +34,6 @@
             justify-content: space-between;
         }
 
-        /*.pitch .half {*/
-        /*    width: 50%;*/
-        /*    border: 1px solid #eee;*/
-        /*    overflow: hidden;*/
-        /*    display: flex;*/
-        /*    align-items: center; !* Center the content vertically *!*/
-        /*}*/
-
         .pitch .midline {
             position: absolute;
             left: 50%;
@@ -92,20 +84,11 @@
             width: 40px;
             height: 40px;
             border-radius: 20px;
-            background: #BDC3C7;
-            color: #34495e;
-            text-align: center;
             line-height: 40px;
             font-size: 24px;
-            font-weight: 100;
-            transition: .3s linear all;
             z-index: 1;
         }
 
-        .pos:hover {
-            color: #BDC3C7;
-            background: #34495e;
-        }
         .teamsTables {
             display: flex;
             justify-content: space-around;
@@ -127,17 +110,6 @@
             border-collapse: collapse;
         }
 
-        /*th, td {*/
-        /*    border: 1px solid #ddd;*/
-        /*    padding: 8px;*/
-        /*    text-align: left;*/
-        /*}*/
-
-        /*th {*/
-        /*    background-color: #4CAF50;*/
-        /*    color: white;*/
-        /*}*/
-
         tbody tr:hover {
             background-color: #f5f5f5;
         }
@@ -151,10 +123,144 @@
             font-size: 1.2em;
             margin-bottom: 10px;
         }
+        .team-container {
+            /*position: relative;*/
+        }
+
+        .team1-container {
+            left: 0;
+        }
+
+        .team2-container {
+            right: 0;
+        }
+
     </style>
 </head>
 <body class="pitchBody">
 <main>
+    <div class="pitch">
+        <div class="container">
+            <h2 style="top: -30px; left: 130px; position: absolute; margin: auto;" th:text="${team1Name}"></h2>
+            <h4 style="top: 25px; left: 100px; position: absolute; margin: auto;" th:text="'Formation : ' + ${formationTeam1}"></h4>
+            <div class="box1">
+                <div class="pen1">
+                    <div class="pos" th:text="${fieldPlayersTeam1.get(0).playerNumber}"
+                         th:style="'left: ' + ${40} + 'px; top: ' + ${20} + 'px' + '; background: #' + ${goalkeeperBorderColorTeam1} + '; color: #' + ${goalkeeperNumberColorTeam1}">
+                    </div>
+                </div>
+            </div>
+<!--            <div th:each="pos, iterStat : ${fieldPlayersTeam1}"-->
+<!--                 class="pos"-->
+<!--                 th:text="${pos.playerNumber}"-->
+<!--                 th:style="'left: ' + ${pos.gridX * 45 + 20} + 'px; top: ' + ${pos.gridY * 60 + 20} + 'px' + (${iterStat.index} == 0 ? '; display: none;' : '') + '; background: #' + ${playerBorderColorTeam1} + '; color: #' + ${playerNumberColorTeam1}">-->
+<!--            </div>-->
+            <div class="team-container team1-container" th:style="'height: ' + ${pitchHeight} + 'px; width: 300px;'">
+                <div th:each="pos, iterStat : ${fieldPlayersTeam1}"
+                     class="pos"
+                     th:text="${pos.playerNumber}"
+                     th:style="'left: ' + ${pos.gridX * 45 + 20} + 'px; top: ' + ${pos.gridY * 60 + 20} + 'px' + (${iterStat.index} == 0 ? '; display: none;' : '') + '; background: #' + ${playerBorderColorTeam1} + '; color: #' + ${playerNumberColorTeam1}">
+                </div>
+            </div>
+
+            <div class="midline"></div>
+            <div class="center-circle"></div>
+            <h2 style="top: -30px; right: 100px; position: absolute; margin: auto;" th:text="${team2Name}"></h2>
+            <h4 style="top: 20px; right: 80px; position: absolute; margin: auto;" th:text="'Formation : ' + ${formationTeam2}"></h4>
+            <div class="box2">
+                <div class="pen2">
+                    <div class="pos" th:text="${fieldPlayersTeam2.get(0).playerNumber}"
+                         th:style="'left: ' + ${-45} + 'px; top: ' + ${20} + 'px' + '; background: #' + ${goalkeeperBorderColorTeam2} + '; color: #' + ${goalkeeperNumberColorTeam2}">
+                    </div>
+                </div>
+            </div>
+<!--            <div th:each="pos, iterStat : ${fieldPlayersTeam2}"-->
+<!--                 class="pos"-->
+<!--                 th:text="${pos.playerNumber}"-->
+<!--                 th:style="'right: ' + ${pos.gridX * 45 + 20} + 'px; top: ' + ${pos.gridY * 60 + 20} + 'px' + (${iterStat.index} == 0 ? '; display: none;' : '') + '; background: #' + ${playerBorderColorTeam2} + '; color: #' + ${playerNumberColorTeam2}">-->
+<!--            </div>-->
+            <div class="team-container team2-container" th:style="'height: ' + ${pitchHeight} + 'px; width: 300px;'">
+                <div th:each="pos, iterStat : ${fieldPlayersTeam2}"
+                     class="pos"
+                     th:text="${pos.playerNumber}"
+                     th:style="'right: ' + ${pos.gridX * 45 + 20} + 'px; top: ' + ${pos.gridY * 60 + 20} + 'px' + (${iterStat.index} == 0 ? '; display: none;' : '') + '; background: #' + ${playerBorderColorTeam2} + '; color: #' + ${playerNumberColorTeam2}">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="teamsTables">
+        <div style="float: left; margin-right: -700px;">
+            <h3 th:text="'Coach: ' + ${team1CoachName}"></h3>
+            <div id="tableStartingXITeam1Description" class="table-header">Starting XI</div>
+            <table aria-describedby="tableStartingXITeam1Description" class="tableStyle">
+                <thead>
+                <tr>
+                    <th>Number</th>
+                    <th>Name</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="player : ${startXILineupsTeam1}">
+                    <td th:text="${player.playerNumber}"></td>
+                    <td th:text="${player.playerName}"></td>
+                </tr>
+                </tbody>
+            </table>
+            <div id="tableSubstitutesTeam1Description" class="table-header" style="margin-top: 15px;">Substitutes</div>
+            <table aria-describedby="tableSubstitutesTeam1Description" class="tableStyle">
+                <thead>
+                <tr>
+                    <th>Number</th>
+                    <th>Name</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="player : ${substitutesPlayersTeam1}">
+                    <td th:text="${player.playerNumber}"></td>
+                    <td th:text="${player.playerName}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="float: left;">
+            <h3 th:text="'Coach: ' + ${team2CoachName}"></h3>
+            <div id="tableStartingXITeam2Description" class="table-header">Starting XI</div>
+            <table aria-describedby="tableStartingXITeam2Description" class="tableStyle">
+                <thead>
+                <tr>
+                    <th>Number</th>
+                    <th>Name</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="player : ${startXILineupsTeam2}">
+                    <td th:text="${player.playerNumber}"></td>
+                    <td th:text="${player.playerName}"></td>
+                </tr>
+                </tbody>
+            </table>
+            <div id="tableSubstitutesTeam2Description" class="table-header" style="margin-top: 15px;">Substitutes</div>
+            <table aria-describedby="tableSubstitutesTeam1Description" class="tableStyle">
+                <thead>
+                <tr>
+                    <th>Number</th>
+                    <th>Name</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="player : ${substitutesPlayersTeam2}">
+                    <td th:text="${player.playerNumber}"></td>
+                    <td th:text="${player.playerName}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>
+
 <!--    <div class="pitch">-->
 <!--        <h4 th:text="${formationTeam1}"></h4>-->
 <!--        <div class="container">-->
@@ -213,121 +319,3 @@
 <!--            </div>-->
 <!--        </div>-->
 <!--    </div>-->
-    <div class="pitch">
-<!--        <h4 th:text="${formationTeam1}"></h4>-->
-<!--        <h4 th:text="${formationTeam2}"></h4>-->
-        <div class="container">
-            <h2 style="top: -30px; left: 130px; position: absolute; margin: auto;" th:text="${team1Name}"></h2>
-            <h4 style="top: 25px; left: 100px; position: absolute; margin: auto;" th:text="'Formation : ' + ${formationTeam1}"></h4>
-            <div class="box1">
-<!--                <h4 style="position: absolute; margin: auto;" th:text="${formationTeam1}"></h4>-->
-                <div class="pen1">
-                    <div class="pos" th:text="${fieldPlayersTeam1.get(0).playerNumber}"
-                         th:style="'left: ' + ${40} + 'px; top: ' + ${20} + 'px' + '; background: #' + ${goalkeeperBorderColorTeam1} + '; color: #' + ${goalkeeperNumberColorTeam1}">
-                    </div>
-                </div>
-            </div>
-            <div th:each="pos, iterStat : ${fieldPlayersTeam1}"
-                 class="pos"
-                 th:text="${pos.playerNumber}"
-                 th:style="'left: ' + ${pos.gridX * 45 + 20} + 'px; top: ' + ${pos.gridY * 60 + 20} + 'px' + (${iterStat.index} == 0 ? '; display: none;' : '') + '; background: #' + ${playerBorderColorTeam1} + '; color: #' + ${playerNumberColorTeam1}">
-            <!--th:style="'margin: ' + ${pos.gridY * 45} + 'px 0 0 ' + ${pos.gridX * 60 + 20} + 'px' + (${iterStat.index} == 0 ? '; display: none;' : '')">-->
-            </div>
-
-            <div class="midline"></div>
-            <div class="center-circle"></div>
-<!--            <div class="box2" th:each="pos : ${fieldPlayersTeam2}">-->
-<!--                <div class="pen2">-->
-<!--                    <div class="pos" th:text="${pos.playerNumber}"-->
-<!--                         th:style="'left: ' + ${pos.gridX * -38} + 'px; top: ' + ${pos.gridY * 38} + 'px'"></div>-->
-<!--                </div>-->
-<!--            </div>-->
-            <h2 style="top: -30px; right: 100px; position: absolute; margin: auto;" th:text="${team2Name}"></h2>
-            <h4 style="top: 20px; right: 80px; position: absolute; margin: auto;" th:text="'Formation : ' + ${formationTeam2}"></h4>
-            <div class="box2">
-                <div class="pen2">
-                    <div class="pos" th:text="${fieldPlayersTeam2.get(0).playerNumber}"
-                         th:style="'left: ' + ${-45} + 'px; top: ' + ${20} + 'px' + '; background: #' + ${goalkeeperBorderColorTeam2} + '; color: #' + ${goalkeeperNumberColorTeam2}">
-                    </div>
-                </div>
-            </div>
-            <div th:each="pos, iterStat : ${fieldPlayersTeam2}"
-                 class="pos"
-                 th:text="${pos.playerNumber}"
-                 th:style="'right: ' + ${pos.gridX * 45 + 20} + 'px; top: ' + ${pos.gridY * 60 + 20} + 'px' + (${iterStat.index} == 0 ? '; display: none;' : '') + '; background: #' + ${playerBorderColorTeam2} + '; color: #' + ${playerNumberColorTeam2}">
-            </div>
-        </div>
-
-    </div>
-    <div class="teamsTables">
-        <div style="float: left; margin-right: -700px;">
-            <h3 th:text="'Coach: ' + ${team1CoachName}"></h3>
-            <div class="table-header">Starting XI</div>
-            <table class="tableStyle">
-                <thead>
-                <tr>
-                    <th>Number</th>
-                    <th>Name</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="player : ${startXILineupsTeam1}">
-                    <td th:text="${player.playerNumber}"></td>
-                    <td th:text="${player.playerName}"></td>
-                </tr>
-                </tbody>
-            </table>
-            <div class="table-header" style="margin-top: 15px;">Substitutes</div>
-            <table class="tableStyle">
-                <thead>
-                <tr>
-                    <th>Number</th>
-                    <th>Name</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="player : ${substitutesPlayersTeam1}">
-                    <td th:text="${player.playerNumber}"></td>
-                    <td th:text="${player.playerName}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div style="float: left;">
-            <h3 th:text="'Coach: ' + ${team2CoachName}"></h3>
-            <div class="table-header">Starting XI</div>
-            <table class="tableStyle">
-                <thead>
-                <tr>
-                    <th>Number</th>
-                    <th>Name</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="player : ${startXILineupsTeam2}">
-                    <td th:text="${player.playerNumber}"></td>
-                    <td th:text="${player.playerName}"></td>
-                </tr>
-                </tbody>
-            </table>
-            <div class="table-header" style="margin-top: 15px;">Substitutes</div>
-            <table class="tableStyle">
-                <thead>
-                <tr>
-                    <th>Number</th>
-                    <th>Name</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="player : ${substitutesPlayersTeam2}">
-                    <td th:text="${player.playerNumber}"></td>
-                    <td th:text="${player.playerName}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</main>
-</body>
-</html>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <title>Match details</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -41,8 +42,8 @@
 
 <div class="comparison-container">
     <div class="team">
-        <h2>Statistics</h2>
-        <table>
+        <h2 id="tableStatisticsDescription">Statistics</h2>
+        <table aria-describedby="tableStatisticsDescription">
             <thead>
             <tr>
                 <th th:text="${matchStatistics.get(0).teamName}"></th>
