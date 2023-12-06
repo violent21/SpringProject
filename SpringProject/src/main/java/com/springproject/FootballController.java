@@ -62,6 +62,12 @@ public class FootballController {
     String last = "5";
     String apiKey = "739fbef17c8cda1256722a1d0ae58ba3";
     private static final String RESPONSE_KEY = "response";
+    private static final String FIXTURE_KEY = "fixture";
+    private static final String TEAMS_KEY = "teams";
+    private static final String VENUE_KEY = "venue";
+    private static final String PLAYER_KEY = "player";
+    private static final String NUMBER_KEY = "number";
+    private static final String PAGE_NOT_FOUND = "page_not_found";
     public Map<String, Object> fetchDataFromApi(String league, String season, String fromDate, String toDate) {
 
         String endpoint = "fixtures?league=" + league + "&season=" + season + "&from=" + fromDate + "&to=" + toDate;
@@ -153,7 +159,7 @@ public class FootballController {
         List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
+                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get(FIXTURE_KEY);
 
                 long fixtureId = Long.parseLong(String.valueOf(fixtureInfo.get("id")));
                 processingMap = fetchFixtureStatistics(fixtureId);
@@ -169,7 +175,7 @@ public class FootballController {
         List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
+                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get(FIXTURE_KEY);
 
                 long fixtureId = Long.parseLong(String.valueOf(fixtureInfo.get("id")));
                 processingMap = fetchLineups(fixtureId);
@@ -183,8 +189,8 @@ public class FootballController {
         List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
-                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
+                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get(TEAMS_KEY)).get("home");
+                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get(TEAMS_KEY)).get("away");
 
                 long homeTeamId = Long.parseLong(String.valueOf(homeTeam.get("id")));
                 if (playersSquadsRepository.findByTeamId(homeTeamId).isEmpty()) {
@@ -205,7 +211,7 @@ public class FootballController {
         List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("venue");
+                Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) fixtureData.get(FIXTURE_KEY)).get(VENUE_KEY);
 
                 long venueId = Long.parseLong(String.valueOf(venue.get("id")));
                 processingMap = fetchVenuesInfo(venueId);
@@ -219,7 +225,7 @@ public class FootballController {
         List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
+                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get(FIXTURE_KEY);
 
                 long fixtureId = Long.parseLong(String.valueOf(fixtureInfo.get("id")));
                 processingMap = fetchEvents(fixtureId);
@@ -233,8 +239,8 @@ public class FootballController {
         List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
-                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
+                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get(TEAMS_KEY)).get("home");
+                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get(TEAMS_KEY)).get("away");
 
                 long homeTeamId = Long.parseLong(String.valueOf(homeTeam.get("id")));
                 long awayTeamId = Long.parseLong(String.valueOf(awayTeam.get("id")));
@@ -251,7 +257,7 @@ public class FootballController {
             for (Map<String, Object> lineupsData : lineupsMap) {
                 Map<String, Object> teamData = (Map<String, Object>) lineupsData.get("team");
                 Map<String, Object> coachData = (Map<String, Object>) lineupsData.get("coach");
-                Map<String, Object> colorsPlayerData = (Map<String, Object>) ((Map<String, Object>) teamData.get("colors")).get("player");
+                Map<String, Object> colorsPlayerData = (Map<String, Object>) ((Map<String, Object>) teamData.get("colors")).get(PLAYER_KEY);
                 Map<String, Object> colorsGoalkeeperData = (Map<String, Object>) ((Map<String, Object>) teamData.get("colors")).get("goalkeeper");
                 List<Map<String, Object>> startXIData = (List<Map<String, Object>>) lineupsData.get("startXI");
                 List<Map<String, Object>> substitutesData = (List<Map<String, Object>>) lineupsData.get("substitutes");
@@ -261,10 +267,10 @@ public class FootballController {
                 mainLineups.setTeamId(Long.valueOf(teamData.get("id").toString()));
                 mainLineups.setTeamName(String.valueOf(teamData.get("name")));
                 mainLineups.setPlayerPrimaryColor(String.valueOf(colorsPlayerData.get("primary")));
-                mainLineups.setPlayerNumberColor(String.valueOf(colorsPlayerData.get("number")));
+                mainLineups.setPlayerNumberColor(String.valueOf(colorsPlayerData.get(NUMBER_KEY)));
                 mainLineups.setPlayerBorderColor(String.valueOf(colorsPlayerData.get("border")));
                 mainLineups.setGoalkeeperPrimaryColor(String.valueOf(colorsGoalkeeperData.get("primary")));
-                mainLineups.setGoalkeeperNumberColor(String.valueOf(colorsGoalkeeperData.get("number")));
+                mainLineups.setGoalkeeperNumberColor(String.valueOf(colorsGoalkeeperData.get(NUMBER_KEY)));
                 mainLineups.setGoalkeeperBorderColor(String.valueOf(colorsGoalkeeperData.get("border")));
                 mainLineups.setCoachId(Long.valueOf(coachData.get("id").toString()));
                 mainLineups.setCoachName(String.valueOf(coachData.get("name")));
@@ -273,27 +279,27 @@ public class FootballController {
                 mainLineupsRepository.save(mainLineups);
 
                 for (Map<String, Object> playerData : startXIData) {
-                    Map<String, Object> player = (Map<String, Object>) playerData.get("player");
+                    Map<String, Object> player = (Map<String, Object>) playerData.get(PLAYER_KEY);
 
                     StartXILineups startXILineups = new StartXILineups();
                     startXILineups.setFixtureId(fixtureId);
                     startXILineups.setTeamId(Long.valueOf(teamData.get("id").toString()));
                     startXILineups.setPlayerId(Long.valueOf(player.get("id").toString()));
                     startXILineups.setPlayerName(String.valueOf(player.get("name")));
-                    startXILineups.setPlayerNumber(String.valueOf(player.get("number").toString()));
+                    startXILineups.setPlayerNumber(String.valueOf(player.get(NUMBER_KEY).toString()));
                     startXILineups.setPlayerPos(String.valueOf(player.get("pos")));
                     startXILineups.setPlayerGrid(String.valueOf(player.get("grid")));
                     startXILineupsRepository.save(startXILineups);
                 }
 
                 for (Map<String, Object> substituteData : substitutesData) {
-                    Map<String, Object> substitute = (Map<String, Object>) substituteData.get("player");
+                    Map<String, Object> substitute = (Map<String, Object>) substituteData.get(PLAYER_KEY);
                     SubstitutesLineups substitutesLineups = new SubstitutesLineups();
                     substitutesLineups.setFixtureId(fixtureId);
                     substitutesLineups.setTeamId(Long.valueOf(teamData.get("id").toString()));
                     substitutesLineups.setPlayerId(Long.valueOf(substitute.get("id").toString()));
                     substitutesLineups.setPlayerName(String.valueOf(substitute.get("name")));
-                    substitutesLineups.setPlayerNumber(String.valueOf(substitute.get("number").toString()));
+                    substitutesLineups.setPlayerNumber(String.valueOf(substitute.get(NUMBER_KEY).toString()));
                     substitutesLineups.setPlayerPos(String.valueOf(substitute.get("pos")));
                     substitutesLineups.setPlayerGrid(String.valueOf(substitute.get("grid")));
                     substitutesLineupsRepository.save(substitutesLineups);
@@ -306,10 +312,10 @@ public class FootballController {
         List<Map<String, Object>> headToHeadMap = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
         if (headToHeadMap != null) {
             for (Map<String, Object> headToHeadData : headToHeadMap) {
-                Map<String, Object> fixtureData = (Map<String, Object>) headToHeadData.get("fixture");
-                Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) headToHeadData.get("fixture")).get("venue");
-                Map<String, Object> homeTeamData = (Map<String, Object>) ((Map<String, Object>) headToHeadData.get("teams")).get("home");
-                Map<String, Object> awayTeamData = (Map<String, Object>) ((Map<String, Object>) headToHeadData.get("teams")).get("away");
+                Map<String, Object> fixtureData = (Map<String, Object>) headToHeadData.get(FIXTURE_KEY);
+                Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) headToHeadData.get(FIXTURE_KEY)).get(VENUE_KEY);
+                Map<String, Object> homeTeamData = (Map<String, Object>) ((Map<String, Object>) headToHeadData.get(TEAMS_KEY)).get("home");
+                Map<String, Object> awayTeamData = (Map<String, Object>) ((Map<String, Object>) headToHeadData.get(TEAMS_KEY)).get("away");
                 Map<String, Object> goalsData = (Map<String, Object>) headToHeadData.get("goals");
 
                 HeadToHead headToHead = new HeadToHead();
@@ -336,7 +342,7 @@ public class FootballController {
             for (Map<String, Object> eventsData : eventsMap) {
                 Map<String, Object> time = (Map<String, Object>) eventsData.get("time");
                 Map<String, Object> team = (Map<String, Object>) eventsData.get("team");
-                Map<String, Object> player = (Map<String, Object>) eventsData.get("player");
+                Map<String, Object> player = (Map<String, Object>) eventsData.get(PLAYER_KEY);
                 Map<String, Object> assist = (Map<String, Object>) eventsData.get("assist");
 
                 Events events = new Events();
@@ -475,6 +481,9 @@ public class FootballController {
                         case "Passes %":
                             teamStatistics.setPassesPrcnt(value);
                             break;
+                        default:
+                            System.out.println("Unhandled type: " + type);
+                            break;
                     }
                 }
                 teamStatisticsRepository.save(teamStatistics);
@@ -561,12 +570,12 @@ public class FootballController {
 
     private Fixture createFixtureFromData(Map<String, Object> fixtureData) {
         Fixture fixture = new Fixture();
-        Map<String, Object> fixtureInfo = getMapValue(fixtureData, "fixture");
+        Map<String, Object> fixtureInfo = getMapValue(fixtureData, FIXTURE_KEY);
         Map<String, Object> homeTeam = getTeamInfo(fixtureData, "home");
         Map<String, Object> awayTeam = getTeamInfo(fixtureData, "away");
         Map<String, Object> fixtureStatus = getMapValue(fixtureInfo, "status");
-        Map<String, Object> venue = getMapValue(fixtureInfo, "venue");
-        Map<String, Object> league = getMapValue(fixtureData, "league");
+        Map<String, Object> venue = getMapValue(fixtureInfo, VENUE_KEY);
+        Map<String, Object> leagueData = getMapValue(fixtureData, "league");
         Map<String, Object> goals = getMapValue(fixtureData, "goals");
 
         fixture.setId(getLongValue(fixtureInfo, "id"));
@@ -581,10 +590,10 @@ public class FootballController {
         fixture.setVenueId(getStringValue(venue, "id"));
         fixture.setVenueName(getStringValue(venue, "name"));
         fixture.setVenueCity(getStringValue(venue, "city"));
-        fixture.setLeagueName(getStringValue(league, "name"));
-        fixture.setLeagueCountry(getStringValue(league, "country"));
-        fixture.setLeagueLogo(getStringValue(league, "logo"));
-        fixture.setLeagueFlag(getStringValue(league, "flag"));
+        fixture.setLeagueName(getStringValue(leagueData, "name"));
+        fixture.setLeagueCountry(getStringValue(leagueData, "country"));
+        fixture.setLeagueLogo(getStringValue(leagueData, "logo"));
+        fixture.setLeagueFlag(getStringValue(leagueData, "flag"));
         fixture.setHomeTeamLogo(getStringValue(homeTeam, "logo"));
         fixture.setHomeTeamWinner(getStringValue(homeTeam, "winner"));
         fixture.setAwayTeamLogo(getStringValue(awayTeam, "logo"));
@@ -596,7 +605,7 @@ public class FootballController {
     }
 
     private Map<String, Object> getTeamInfo(Map<String, Object> fixtureData, String team) {
-        return getMapValue((Map<String, Object>) fixtureData.get("teams"), team);
+        return getMapValue((Map<String, Object>) fixtureData.get(TEAMS_KEY), team);
     }
 
     private Map<String, Object> getMapValue(Map<String, Object> map, String key) {
@@ -669,7 +678,7 @@ public class FootballController {
             model.addAttribute("matches", matches);
             return "matches";
         } else {
-            return "match_not_found";
+            return PAGE_NOT_FOUND;
         }
     }
 
@@ -682,7 +691,7 @@ public class FootballController {
             model.addAttribute("matchStatistics", matchStatistics);
             return "match_details";
         } else {
-            return "match_not_found";
+            return PAGE_NOT_FOUND;
         }
     }
 
@@ -693,7 +702,7 @@ public class FootballController {
             model.addAttribute("squads", squads);
             return "players_squads";
         } else {
-            return "match_not_found";
+            return PAGE_NOT_FOUND;
         }
     }
 
@@ -701,10 +710,10 @@ public class FootballController {
     public String showVenue(@PathVariable("id") Long id, Model model) {
         Optional<VenuesInfo> venue = venuesInfoRepository.findById(id);
         if (venue.isPresent()) {
-            model.addAttribute("venue", venue);
+            model.addAttribute(VENUE_KEY, venue);
             return "venue_info";
         } else {
-            return "match_not_found";
+            return PAGE_NOT_FOUND;
         }
     }
 
@@ -715,7 +724,7 @@ public class FootballController {
             model.addAttribute("events", events);
             return "events";
         } else {
-            return "match_not_found";
+            return PAGE_NOT_FOUND;
         }
     }
 
@@ -734,7 +743,7 @@ public class FootballController {
             model.addAttribute("headToHeadList", headToHeadList);
             return "head_to_head";
         } else {
-            return "match_not_found";
+            return PAGE_NOT_FOUND;
         }
     }
 
@@ -813,7 +822,7 @@ public class FootballController {
 
             return "lineups";
         } else {
-            return "match_not_found";
+            return PAGE_NOT_FOUND;
         }
     }
 
