@@ -6,7 +6,6 @@ import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -54,16 +53,14 @@ public class FootballController {
 
     private LocalDateTime lastUpdateTimestamp;
     private static final Duration REFRESH_INTERVAL = Duration.ofHours(1);
-    private Map<String, Object> result = new HashMap<>();
-    private Map<String, Object> result1 = new HashMap<>();
+    private Map<String, Object> mainMapResult = new HashMap<>();
+    private Map<String, Object> processingMap = new HashMap<>();
     String league = "135";
     String season = "2023";
     String fromDate = "2023-10-30";
     String toDate = "2023-11-03";
     String last = "5";
     String apiKey = "739fbef17c8cda1256722a1d0ae58ba3";
-
-    @Cacheable("apiData")
     public Map<String, Object> fetchDataFromApi(String league, String season, String fromDate, String toDate) {
 
         String endpoint = "fixtures?league=" + league + "&season=" + season + "&from=" + fromDate + "&to=" + toDate;
@@ -77,8 +74,6 @@ public class FootballController {
 
         return response.getBody().getObject().toMap();
     }
-
-    @Cacheable("apiDataStatistics")
     public Map<String, Object> fetchFixtureStatistics(long fixtureId) {
         String endpoint = "fixtures/statistics?fixture=" + fixtureId;
         String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
@@ -91,8 +86,6 @@ public class FootballController {
 
         return response.getBody().getObject().toMap();
     }
-
-    @Cacheable("playersSquads")
     public Map<String, Object> fetchPlayersSquads(long teamId) {
         String endpoint = "players/squads?team=" + teamId;
         String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
@@ -105,8 +98,6 @@ public class FootballController {
 
         return response.getBody().getObject().toMap();
     }
-
-    @Cacheable("venuesInfo")
     public Map<String, Object> fetchVenuesInfo(long venueId) {
         String endpoint = "/venues?id=" + venueId;
         String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
@@ -119,8 +110,6 @@ public class FootballController {
 
         return response.getBody().getObject().toMap();
     }
-
-    @Cacheable("events")
     public Map<String, Object> fetchEvents(long fixtureId) {
         String endpoint = "/fixtures/events?fixture=" + fixtureId;
         String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
@@ -133,8 +122,6 @@ public class FootballController {
 
         return response.getBody().getObject().toMap();
     }
-
-    @Cacheable("headToHead")
     public Map<String, Object> fetchHeadToHead(long homeTeamId, long awayTeamId) {
         String endpoint = "/fixtures/headtohead?h2h=" + homeTeamId + "-" + awayTeamId + "&last=" + last;
         String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
@@ -147,7 +134,6 @@ public class FootballController {
 
         return response.getBody().getObject().toMap();
     }
-
     public Map<String, Object> fetchLineups(long fixtureId) {
         String endpoint = "/fixtures/lineups?fixture=" + fixtureId;
         String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
@@ -163,13 +149,13 @@ public class FootballController {
 
     public void processFixtureStatistics() {
         teamStatisticsRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) result.get("response");
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
                 Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
 
                 long fixtureId = Long.parseLong(String.valueOf(fixtureInfo.get("id")));
-                result1 = fetchFixtureStatistics(fixtureId);
+                processingMap = fetchFixtureStatistics(fixtureId);
                 saveStatisticsToDatabase(fixtureId);
             }
         }
@@ -179,20 +165,87 @@ public class FootballController {
         mainLineupsRepository.deleteAll();
         startXILineupsRepository.deleteAll();
         substitutesLineupsRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) result.get("response");
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
                 Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
 
                 long fixtureId = Long.parseLong(String.valueOf(fixtureInfo.get("id")));
-                result1 = fetchLineups(fixtureId);
+                processingMap = fetchLineups(fixtureId);
                 saveLineupsToDatabase(fixtureId);
             }
         }
     }
 
+    public void processPlayersSquads() {
+        playersSquadsRepository.deleteAll();
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        if (fixtures != null) {
+            for (Map<String, Object> fixtureData : fixtures) {
+                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
+                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
+
+                long homeTeamId = Long.parseLong(String.valueOf(homeTeam.get("id")));
+                if (playersSquadsRepository.findByTeamId(homeTeamId).isEmpty()) {
+                    processingMap = fetchPlayersSquads(homeTeamId);
+                    savePlayersSquadsToDatabase();
+                }
+
+                long awayTeamId = Long.parseLong(String.valueOf(awayTeam.get("id")));
+                if (playersSquadsRepository.findByTeamId(awayTeamId).isEmpty()) {
+                    processingMap = fetchPlayersSquads(awayTeamId);
+                    savePlayersSquadsToDatabase();
+                }
+            }
+        }
+    }
+
+    public void processVenuesInfo() {
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        if (fixtures != null) {
+            for (Map<String, Object> fixtureData : fixtures) {
+                Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("venue");
+
+                long venueId = Long.parseLong(String.valueOf(venue.get("id")));
+                processingMap = fetchVenuesInfo(venueId);
+                saveVenuesInfoToDatabase();
+            }
+        }
+    }
+
+    public void processEvents() {
+        eventsRepository.deleteAll();
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        if (fixtures != null) {
+            for (Map<String, Object> fixtureData : fixtures) {
+                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
+
+                long fixtureId = Long.parseLong(String.valueOf(fixtureInfo.get("id")));
+                processingMap = fetchEvents(fixtureId);
+                saveEventsToDatabase(fixtureId);
+            }
+        }
+    }
+
+    public void processHeadToHead() {
+        headToHeadRepository.deleteAll();
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        if (fixtures != null) {
+            for (Map<String, Object> fixtureData : fixtures) {
+                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
+                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
+
+                long homeTeamId = Long.parseLong(String.valueOf(homeTeam.get("id")));
+                long awayTeamId = Long.parseLong(String.valueOf(awayTeam.get("id")));
+                String homePlusAway = homeTeamId + "-" + awayTeamId;
+                processingMap = fetchHeadToHead(homeTeamId, awayTeamId);
+                saveHeadToHeadToDatabase(homePlusAway);
+            }
+        }
+    }
+
     private void saveLineupsToDatabase(long fixtureId) {
-        List<Map<String, Object>> lineupsMap = (List<Map<String, Object>>) result1.get("response");
+        List<Map<String, Object>> lineupsMap = (List<Map<String, Object>>) processingMap.get("response");
         if (lineupsMap != null) {
             for (Map<String, Object> lineupsData : lineupsMap) {
                 Map<String, Object> teamData = (Map<String, Object>) lineupsData.get("team");
@@ -248,75 +301,8 @@ public class FootballController {
         }
     }
 
-    public void processPlayersSquads() {
-        playersSquadsRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) result.get("response");
-        if (fixtures != null) {
-            for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
-                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
-
-                long homeTeamId = Long.parseLong(String.valueOf(homeTeam.get("id")));
-                if (playersSquadsRepository.findByTeamId(homeTeamId).isEmpty()) {
-                    result1 = fetchPlayersSquads(homeTeamId);
-                    savePlayersSquadsToDatabase();
-                }
-
-                long awayTeamId = Long.parseLong(String.valueOf(awayTeam.get("id")));
-                if (playersSquadsRepository.findByTeamId(awayTeamId).isEmpty()) {
-                    result1 = fetchPlayersSquads(awayTeamId);
-                    savePlayersSquadsToDatabase();
-                }
-            }
-        }
-    }
-
-    public void processVenuesInfo() {
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) result.get("response");
-        if (fixtures != null) {
-            for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("venue");
-
-                long venueId = Long.parseLong(String.valueOf(venue.get("id")));
-                result1 = fetchVenuesInfo(venueId);
-                saveVenuesInfoToDatabase();
-            }
-        }
-    }
-
-    public void processEvents() {
-        eventsRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) result.get("response");
-        if (fixtures != null) {
-            for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
-
-                long fixtureId = Long.parseLong(String.valueOf(fixtureInfo.get("id")));
-                result1 = fetchEvents(fixtureId);
-                saveEventsToDatabase(fixtureId);
-            }
-        }
-    }
-
-    public void processHeadToHead() {
-        headToHeadRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) result.get("response");
-        if (fixtures != null) {
-            for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
-                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
-
-                long homeTeamId = Long.parseLong(String.valueOf(homeTeam.get("id")));
-                long awayTeamId = Long.parseLong(String.valueOf(awayTeam.get("id")));
-                String homePlusAway = homeTeamId + "-" + awayTeamId;
-                result1 = fetchHeadToHead(homeTeamId, awayTeamId);
-                saveHeadToHeadToDatabase(homePlusAway);
-            }
-        }
-    }
-
     private void saveHeadToHeadToDatabase(String homePlusAway) {
-        List<Map<String, Object>> headToHeadMap = (List<Map<String, Object>>) result1.get("response");
+        List<Map<String, Object>> headToHeadMap = (List<Map<String, Object>>) processingMap.get("response");
         if (headToHeadMap != null) {
             for (Map<String, Object> headToHeadData : headToHeadMap) {
                 Map<String, Object> fixtureData = (Map<String, Object>) headToHeadData.get("fixture");
@@ -343,19 +329,8 @@ public class FootballController {
         }
     }
 
-    @Scheduled(fixedRate = 3600000)
-    public void updateData() {
-        Map<String, Object> newData = fetchDataFromApi(league, season, fromDate, toDate);
-
-        if (!newData.equals(result)) {
-            saveDataToDatabase(newData);
-            lastUpdateTimestamp = LocalDateTime.now();
-            result = newData;
-        }
-    }
-
     private void saveEventsToDatabase(long fixtureId) {
-        List<Map<String, Object>> eventsMap = (List<Map<String, Object>>) result1.get("response");
+        List<Map<String, Object>> eventsMap = (List<Map<String, Object>>) processingMap.get("response");
         if (eventsMap != null) {
             for (Map<String, Object> eventsData : eventsMap) {
                 Map<String, Object> time = (Map<String, Object>) eventsData.get("time");
@@ -384,7 +359,7 @@ public class FootballController {
     }
 
     private void saveVenuesInfoToDatabase() {
-        List<Map<String, Object>> venues = (List<Map<String, Object>>) result1.get("response");
+        List<Map<String, Object>> venues = (List<Map<String, Object>>) processingMap.get("response");
         if (venues != null) {
             for (Map<String, Object> venueData : venues) {
                 VenuesInfo venue = new VenuesInfo();
@@ -403,7 +378,7 @@ public class FootballController {
     }
 
     private void savePlayersSquadsToDatabase() {
-        List<Map<String, Object>> squads = (List<Map<String, Object>>) result1.get("response");
+        List<Map<String, Object>> squads = (List<Map<String, Object>>) processingMap.get("response");
         if (squads != null) {
             for (Map<String, Object> squadsData : squads) {
                 Map<String, Object> teamData = (Map<String, Object>) squadsData.get("team");
@@ -436,7 +411,7 @@ public class FootballController {
     }
 
     private void saveStatisticsToDatabase(long fixtureId) {
-        List<Map<String, Object>> statistics = (List<Map<String, Object>>) result1.get("response");
+        List<Map<String, Object>> statistics = (List<Map<String, Object>>) processingMap.get("response");
         if (statistics != null) {
             for (Map<String, Object> statisticsData : statistics) {
                 Map<String, Object> team = (Map<String, Object>) statisticsData.get("team");
@@ -506,62 +481,141 @@ public class FootballController {
         }
     }
 
+//    private void saveDataToDatabase(Map<String, Object> data) {
+//        fixtureRepository.deleteAll();
+//
+//        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+//        if (fixtures != null) {
+//            for (Map<String, Object> fixtureData : fixtures) {
+//                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
+//                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
+//                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
+//
+//                Fixture fixture = new Fixture();
+//                fixture.setId(Long.valueOf(String.valueOf(fixtureInfo.get("id"))));
+//                fixture.setDate(String.valueOf(fixtureInfo.get("date")));
+//                fixture.setHomeTeamName(String.valueOf(homeTeam.get("name")));
+//                fixture.setHomeTeamId(String.valueOf(homeTeam.get("id")));
+//                fixture.setAwayTeamName(String.valueOf(awayTeam.get("name")));
+//                fixture.setAwayTeamId(String.valueOf(awayTeam.get("id")));
+//
+//                fixture.setReferee(String.valueOf(fixtureInfo.get("referee")));
+//                Map<String, Object> fixtureStatus = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("status");
+//                if (fixtureStatus.get("long") != null) {
+//                    fixture.setStatus(String.valueOf(fixtureStatus.get("long")));
+//                }
+//                Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("venue");
+//                fixture.setVenueId(String.valueOf(venue.get("id")));
+//                if (venue.get("name") != null) {
+//                    fixture.setVenueName(String.valueOf(venue.get("name")));
+//                }
+//                if (venue.get("city") != null) {
+//                    fixture.setVenueCity(String.valueOf(venue.get("city")));
+//                }
+//                Map<String, Object> league = (Map<String, Object>) fixtureData.get("league");
+//                fixture.setLeagueName(String.valueOf(league.get("name")));
+//                fixture.setLeagueCountry(String.valueOf(league.get("country")));
+//                fixture.setLeagueLogo(String.valueOf(league.get("logo")));
+//                fixture.setLeagueFlag(String.valueOf(league.get("flag")));
+//                fixture.setHomeTeamLogo(String.valueOf(homeTeam.get("logo")));
+//                if (homeTeam.get("winner") != null) {
+//                    fixture.setHomeTeamWinner(String.valueOf(homeTeam.get("winner").toString()));
+//                }
+//                fixture.setAwayTeamLogo(String.valueOf(awayTeam.get("logo")));
+//                if (awayTeam.get("winner") != null) {
+//                    fixture.setAwayTeamWinner(String.valueOf(awayTeam.get("winner").toString()));
+//                }
+//                Map<String, Object> goals = (Map<String, Object>) fixtureData.get("goals");
+//                if (goals != null) {
+//                    if (goals.get("home") != null) {
+//                        fixture.setHomeGoals(Integer.parseInt(goals.get("home").toString()));
+//                    }
+//                    if (goals.get("away") != null) {
+//                        fixture.setAwayGoals(Integer.parseInt(goals.get("away").toString()));
+//                    }
+//                }
+//                fixtureRepository.save(fixture);
+//            }
+//        }
+//    }
+
     private void saveDataToDatabase(Map<String, Object> data) {
         fixtureRepository.deleteAll();
 
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) result.get("response");
+        List<Map<String, Object>> fixtures = getFixturesFromData(data);
+
         if (fixtures != null) {
-            for (Map<String, Object> fixtureData : fixtures) {
-                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
-                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
-                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
-
-                Fixture fixture = new Fixture();
-                fixture.setId(Long.valueOf(String.valueOf(fixtureInfo.get("id"))));
-                fixture.setDate(String.valueOf(fixtureInfo.get("date")));
-                fixture.setHomeTeamName(String.valueOf(homeTeam.get("name")));
-                fixture.setHomeTeamId(String.valueOf(homeTeam.get("id")));
-                fixture.setAwayTeamName(String.valueOf(awayTeam.get("name")));
-                fixture.setAwayTeamId(String.valueOf(awayTeam.get("id")));
-
-                fixture.setReferee(String.valueOf(fixtureInfo.get("referee")));
-                Map<String, Object> fixtureStatus = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("status");
-                if (fixtureStatus.get("long") != null) {
-                    fixture.setStatus(String.valueOf(fixtureStatus.get("long")));
-                }
-                Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("venue");
-                fixture.setVenueId(String.valueOf(venue.get("id")));
-                if (venue.get("name") != null) {
-                    fixture.setVenueName(String.valueOf(venue.get("name")));
-                }
-                if (venue.get("city") != null) {
-                    fixture.setVenueCity(String.valueOf(venue.get("city")));
-                }
-                Map<String, Object> league = (Map<String, Object>) fixtureData.get("league");
-                fixture.setLeagueName(String.valueOf(league.get("name")));
-                fixture.setLeagueCountry(String.valueOf(league.get("country")));
-                fixture.setLeagueLogo(String.valueOf(league.get("logo")));
-                fixture.setLeagueFlag(String.valueOf(league.get("flag")));
-                fixture.setHomeTeamLogo(String.valueOf(homeTeam.get("logo")));
-                if (homeTeam.get("winner") != null) {
-                    fixture.setHomeTeamWinner(String.valueOf(homeTeam.get("winner").toString()));
-                }
-                fixture.setAwayTeamLogo(String.valueOf(awayTeam.get("logo")));
-                if (awayTeam.get("winner") != null) {
-                    fixture.setAwayTeamWinner(String.valueOf(awayTeam.get("winner").toString()));
-                }
-                Map<String, Object> goals = (Map<String, Object>) fixtureData.get("goals");
-                if (goals != null) {
-                    if (goals.get("home") != null) {
-                        fixture.setHomeGoals(Integer.parseInt(goals.get("home").toString()));
-                    }
-                    if (goals.get("away") != null) {
-                        fixture.setAwayGoals(Integer.parseInt(goals.get("away").toString()));
-                    }
-                }
-                fixtureRepository.save(fixture);
-            }
+            fixtures.forEach(this::saveFixtureToDatabase);
         }
+    }
+
+    private List<Map<String, Object>> getFixturesFromData(Map<String, Object> data) {
+        return (List<Map<String, Object>>) data.get("response");
+    }
+
+    private void saveFixtureToDatabase(Map<String, Object> fixtureData) {
+        Fixture fixture = createFixtureFromData(fixtureData);
+        fixtureRepository.save(fixture);
+    }
+
+    private Fixture createFixtureFromData(Map<String, Object> fixtureData) {
+        Fixture fixture = new Fixture();
+        Map<String, Object> fixtureInfo = getMapValue(fixtureData, "fixture");
+        Map<String, Object> homeTeam = getTeamInfo(fixtureData, "home");
+        Map<String, Object> awayTeam = getTeamInfo(fixtureData, "away");
+        Map<String, Object> fixtureStatus = getMapValue(fixtureInfo, "status");
+        Map<String, Object> venue = getMapValue(fixtureInfo, "venue");
+        Map<String, Object> league = getMapValue(fixtureData, "league");
+        Map<String, Object> goals = getMapValue(fixtureData, "goals");
+
+        fixture.setId(getLongValue(fixtureInfo, "id"));
+        fixture.setDate(getStringValue(fixtureInfo, "date"));
+        fixture.setHomeTeamName(getStringValue(homeTeam, "name"));
+        fixture.setHomeTeamId(getStringValue(homeTeam, "id"));
+        fixture.setAwayTeamName(getStringValue(awayTeam, "name"));
+        fixture.setAwayTeamId(getStringValue(awayTeam, "id"));
+
+        fixture.setReferee(getStringValue(fixtureInfo, "referee"));
+        fixture.setStatus(getStringValue(fixtureStatus, "long"));
+        fixture.setVenueId(getStringValue(venue, "id"));
+        fixture.setVenueName(getStringValue(venue, "name"));
+        fixture.setVenueCity(getStringValue(venue, "city"));
+        fixture.setLeagueName(getStringValue(league, "name"));
+        fixture.setLeagueCountry(getStringValue(league, "country"));
+        fixture.setLeagueLogo(getStringValue(league, "logo"));
+        fixture.setLeagueFlag(getStringValue(league, "flag"));
+        fixture.setHomeTeamLogo(getStringValue(homeTeam, "logo"));
+        fixture.setHomeTeamWinner(getStringValue(homeTeam, "winner"));
+        fixture.setAwayTeamLogo(getStringValue(awayTeam, "logo"));
+        fixture.setAwayTeamWinner(getStringValue(awayTeam, "winner"));
+        fixture.setHomeGoals(getIntegerValue(goals, "home"));
+        fixture.setAwayGoals(getIntegerValue(goals, "away"));
+
+        return fixture;
+    }
+
+    private Map<String, Object> getTeamInfo(Map<String, Object> fixtureData, String team) {
+        return getMapValue((Map<String, Object>) fixtureData.get("teams"), team);
+    }
+
+    private Map<String, Object> getMapValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        return (value instanceof Map) ? (Map<String, Object>) value : null;
+    }
+
+    private String getStringValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        return (value != null) ? String.valueOf(value) : null;
+    }
+
+    private Long getLongValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        return (value != null) ? Long.valueOf(String.valueOf(value)) : null;
+    }
+
+    private Integer getIntegerValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        return (value != null) ? Integer.parseInt(String.valueOf(value)) : null;
     }
 
     private boolean isDataStale() {
@@ -574,29 +628,32 @@ public class FootballController {
         return timeElapsed.compareTo(REFRESH_INTERVAL) > 0;
     }
 
-//    @GetMapping("/leagues")
-//    @ResponseBody
-//    public Map<String, Object> leagues() {
-//        result = fetchDataFromApi(league, season, fromDate, toDate);
-//
-//        return result;
-//    }
+    @Scheduled(fixedRate = 3600000)
+    public void updateData() {
+        Map<String, Object> newData = fetchDataFromApi(league, season, fromDate, toDate);
+
+        if (!newData.equals(mainMapResult)) {
+            saveDataToDatabase(newData);
+            lastUpdateTimestamp = LocalDateTime.now();
+            mainMapResult = newData;
+        }
+    }
 
     @GetMapping("/matches")
     public String showMatches(Model model) {
-//        if (isDataStale()) {
-//            result = fetchDataFromApi(league, season, fromDate, toDate);
-//            if (result != null) {
-//                saveDataToDatabase(result);
+        if (isDataStale()) {
+            mainMapResult = fetchDataFromApi(league, season, fromDate, toDate);
+            if (mainMapResult != null) {
+                saveDataToDatabase(mainMapResult);
 //                processFixtureStatistics();
 //                processPlayersSquads();
 //                processVenuesInfo();
 //                processEvents();
 //                processHeadToHead();
 //                processLineups();
-//                lastUpdateTimestamp = LocalDateTime.now();
-//            }
-//        }
+                lastUpdateTimestamp = LocalDateTime.now();
+            }
+        }
 
         List<Fixture> matches = fixtureRepository.findAll();
 
@@ -613,18 +670,6 @@ public class FootballController {
         } else {
             return "match_not_found";
         }
-        //        List<Fixture> matches = fixtureRepository.findAll();
-//        model.addAttribute("matches", matches);
-//
-//        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
-//
-//        for (Fixture match : matches) {
-//            if (match.getDate() != null) {
-//                OffsetDateTime offsetDateTime = OffsetDateTime.parse(match.getDate());
-//                match.setParsedDate(offsetDateTime);
-//            }
-//        }
-//        return "matches";
     }
 
     @GetMapping("/match/{id}")
@@ -721,55 +766,56 @@ public class FootballController {
 //            return "match_not_found";
 //        }
 //    }
-@GetMapping("/lineups/{id}")
-public String showLineups(@PathVariable("id") Long id, Model model) {
-    List<MainLineups> mainLineups = mainLineupsRepository.findByFixtureId(id);
+    @GetMapping("/lineups/{id}")
+    public String showLineups(@PathVariable("id") Long id, Model model) {
+        List<MainLineups> mainLineups = mainLineupsRepository.findByFixtureId(id);
 
-    if (!mainLineups.isEmpty()) {
-        Long teamId1 = mainLineups.get(0).getTeamId();
-        Long teamId2 = mainLineups.get(1).getTeamId();
+        if (!mainLineups.isEmpty()) {
+            Long teamId1 = mainLineups.get(0).getTeamId();
+            Long teamId2 = mainLineups.get(1).getTeamId();
 
-        List<MainLineups> mainLineupsTeam1 = mainLineupsRepository.findByFixtureIdAndTeamId(id, teamId1);
-        List<MainLineups> mainLineupsTeam2 = mainLineupsRepository.findByFixtureIdAndTeamId(id, teamId2);
+            List<MainLineups> mainLineupsTeam1 = mainLineupsRepository.findByFixtureIdAndTeamId(id, teamId1);
+            List<MainLineups> mainLineupsTeam2 = mainLineupsRepository.findByFixtureIdAndTeamId(id, teamId2);
 
-        List<StartXILineups> startXILineupsTeam1 = startXILineupsRepository.findByFixtureIdAndTeamId(id, teamId1);
-        List<StartXILineups> startXILineupsTeam2 = startXILineupsRepository.findByFixtureIdAndTeamId(id, teamId2);
+            List<StartXILineups> startXILineupsTeam1 = startXILineupsRepository.findByFixtureIdAndTeamId(id, teamId1);
+            List<StartXILineups> startXILineupsTeam2 = startXILineupsRepository.findByFixtureIdAndTeamId(id, teamId2);
 
-        List<SubstitutesLineups> substitutesLineupsTeam1 = substitutesLineupsRepository.findByFixtureIdAndTeamId(id, teamId1);
-        List<SubstitutesLineups> substitutesLineupsTeam2 = substitutesLineupsRepository.findByFixtureIdAndTeamId(id, teamId2);
+            List<SubstitutesLineups> substitutesLineupsTeam1 = substitutesLineupsRepository.findByFixtureIdAndTeamId(id, teamId1);
+            List<SubstitutesLineups> substitutesLineupsTeam2 = substitutesLineupsRepository.findByFixtureIdAndTeamId(id, teamId2);
 
-        model.addAttribute("team1Name", mainLineupsTeam1.get(0).getTeamName());
-        model.addAttribute("team1CoachName", mainLineupsTeam1.get(0).getCoachName());
-        model.addAttribute("formationTeam1", mainLineupsTeam1.get(0).getFormation());
-        model.addAttribute("goalkeeperBorderColorTeam1", mainLineupsTeam1.get(0).getGoalkeeperBorderColor());
-        model.addAttribute("goalkeeperNumberColorTeam1", mainLineupsTeam1.get(0).getGoalkeeperNumberColor());
-        model.addAttribute("playerBorderColorTeam1", mainLineupsTeam1.get(0).getPlayerBorderColor());
-        model.addAttribute("playerNumberColorTeam1", mainLineupsTeam1.get(0).getPlayerNumberColor());
-        model.addAttribute("team2Name", mainLineupsTeam2.get(0).getTeamName());
-        model.addAttribute("team2CoachName", mainLineupsTeam2.get(0).getCoachName());
-        model.addAttribute("formationTeam2", mainLineupsTeam2.get(0).getFormation());
-        model.addAttribute("goalkeeperBorderColorTeam2", mainLineupsTeam2.get(0).getGoalkeeperBorderColor());
-        model.addAttribute("goalkeeperNumberColorTeam2", mainLineupsTeam2.get(0).getGoalkeeperNumberColor());
-        model.addAttribute("playerBorderColorTeam2", mainLineupsTeam2.get(0).getPlayerBorderColor());
-        model.addAttribute("playerNumberColorTeam2", mainLineupsTeam2.get(0).getPlayerNumberColor());
+            model.addAttribute("team1Name", mainLineupsTeam1.get(0).getTeamName());
+            model.addAttribute("team1CoachName", mainLineupsTeam1.get(0).getCoachName());
+            model.addAttribute("formationTeam1", mainLineupsTeam1.get(0).getFormation());
+            model.addAttribute("goalkeeperBorderColorTeam1", mainLineupsTeam1.get(0).getGoalkeeperBorderColor());
+            model.addAttribute("goalkeeperNumberColorTeam1", mainLineupsTeam1.get(0).getGoalkeeperNumberColor());
+            model.addAttribute("playerBorderColorTeam1", mainLineupsTeam1.get(0).getPlayerBorderColor());
+            model.addAttribute("playerNumberColorTeam1", mainLineupsTeam1.get(0).getPlayerNumberColor());
+            model.addAttribute("team2Name", mainLineupsTeam2.get(0).getTeamName());
+            model.addAttribute("team2CoachName", mainLineupsTeam2.get(0).getCoachName());
+            model.addAttribute("formationTeam2", mainLineupsTeam2.get(0).getFormation());
+            model.addAttribute("goalkeeperBorderColorTeam2", mainLineupsTeam2.get(0).getGoalkeeperBorderColor());
+            model.addAttribute("goalkeeperNumberColorTeam2", mainLineupsTeam2.get(0).getGoalkeeperNumberColor());
+            model.addAttribute("playerBorderColorTeam2", mainLineupsTeam2.get(0).getPlayerBorderColor());
+            model.addAttribute("playerNumberColorTeam2", mainLineupsTeam2.get(0).getPlayerNumberColor());
 
-        List<FieldPlayer> fieldPlayersTeam1 = createFieldPlayers(startXILineupsTeam1);
-        List<FieldPlayer> fieldPlayersTeam2 = createFieldPlayers(startXILineupsTeam2);
+            List<FieldPlayer> fieldPlayersTeam1 = createFieldPlayers(startXILineupsTeam1);
+            List<FieldPlayer> fieldPlayersTeam2 = createFieldPlayers(startXILineupsTeam2);
 
-        model.addAttribute("fieldPlayersTeam1", fieldPlayersTeam1);
-        model.addAttribute("fieldPlayersTeam2", fieldPlayersTeam2);
-        model.addAttribute("startXILineupsTeam1", startXILineupsTeam1);
-        model.addAttribute("startXILineupsTeam2", startXILineupsTeam2);
-        model.addAttribute("substitutesPlayersTeam1", substitutesLineupsTeam1);
-        model.addAttribute("substitutesPlayersTeam2", substitutesLineupsTeam2);
+            model.addAttribute("fieldPlayersTeam1", fieldPlayersTeam1);
+            model.addAttribute("fieldPlayersTeam2", fieldPlayersTeam2);
+            model.addAttribute("startXILineupsTeam1", startXILineupsTeam1);
+            model.addAttribute("startXILineupsTeam2", startXILineupsTeam2);
+            model.addAttribute("substitutesPlayersTeam1", substitutesLineupsTeam1);
+            model.addAttribute("substitutesPlayersTeam2", substitutesLineupsTeam2);
+            model.addAttribute("pitchHeight", 300);
+            model.addAttribute("playerHeight", 40);
 
-        return "lineups";
-    } else {
-        return "match_not_found";
+            return "lineups";
+        } else {
+            return "match_not_found";
+        }
     }
-}
 
-    // Класс для представления данных игрока на поле
     public static class FieldPlayer {
         private int gridX;
         private int gridY;
@@ -805,7 +851,6 @@ public String showLineups(@PathVariable("id") Long id, Model model) {
         }
     }
 
-    // Метод для создания списка FieldPlayer из списка StartXILineups
     private List<FieldPlayer> createFieldPlayers(List<StartXILineups> startXILineupsList) {
         List<FieldPlayer> fieldPlayers = new ArrayList<>();
         for (StartXILineups startXILineups : startXILineupsList) {
@@ -945,6 +990,13 @@ public String showLineups(@PathVariable("id") Long id, Model model) {
 //        List<Fixture> matches = fixtureRepository.findAll();
 //        model.addAttribute("matches", matches);
 //        return "matches";
+//    }
+//    @GetMapping("/leagues")
+//    @ResponseBody
+//    public Map<String, Object> leagues() {
+//        result = fetchDataFromApi(league, season, fromDate, toDate);
+//
+//        return result;
 //    }
 //
 //    @GetMapping("/match/{id}")
