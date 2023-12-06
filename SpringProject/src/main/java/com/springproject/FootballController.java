@@ -61,6 +61,7 @@ public class FootballController {
     String toDate = "2023-11-03";
     String last = "5";
     String apiKey = "739fbef17c8cda1256722a1d0ae58ba3";
+    private static final String RESPONSE_KEY = "response";
     public Map<String, Object> fetchDataFromApi(String league, String season, String fromDate, String toDate) {
 
         String endpoint = "fixtures?league=" + league + "&season=" + season + "&from=" + fromDate + "&to=" + toDate;
@@ -149,7 +150,7 @@ public class FootballController {
 
     public void processFixtureStatistics() {
         teamStatisticsRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
                 Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
@@ -165,7 +166,7 @@ public class FootballController {
         mainLineupsRepository.deleteAll();
         startXILineupsRepository.deleteAll();
         substitutesLineupsRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
                 Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
@@ -179,7 +180,7 @@ public class FootballController {
 
     public void processPlayersSquads() {
         playersSquadsRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
                 Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
@@ -201,7 +202,7 @@ public class FootballController {
     }
 
     public void processVenuesInfo() {
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
                 Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("venue");
@@ -215,7 +216,7 @@ public class FootballController {
 
     public void processEvents() {
         eventsRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
                 Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
@@ -229,7 +230,7 @@ public class FootballController {
 
     public void processHeadToHead() {
         headToHeadRepository.deleteAll();
-        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
+        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get(RESPONSE_KEY);
         if (fixtures != null) {
             for (Map<String, Object> fixtureData : fixtures) {
                 Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
@@ -245,7 +246,7 @@ public class FootballController {
     }
 
     private void saveLineupsToDatabase(long fixtureId) {
-        List<Map<String, Object>> lineupsMap = (List<Map<String, Object>>) processingMap.get("response");
+        List<Map<String, Object>> lineupsMap = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
         if (lineupsMap != null) {
             for (Map<String, Object> lineupsData : lineupsMap) {
                 Map<String, Object> teamData = (Map<String, Object>) lineupsData.get("team");
@@ -302,7 +303,7 @@ public class FootballController {
     }
 
     private void saveHeadToHeadToDatabase(String homePlusAway) {
-        List<Map<String, Object>> headToHeadMap = (List<Map<String, Object>>) processingMap.get("response");
+        List<Map<String, Object>> headToHeadMap = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
         if (headToHeadMap != null) {
             for (Map<String, Object> headToHeadData : headToHeadMap) {
                 Map<String, Object> fixtureData = (Map<String, Object>) headToHeadData.get("fixture");
@@ -330,7 +331,7 @@ public class FootballController {
     }
 
     private void saveEventsToDatabase(long fixtureId) {
-        List<Map<String, Object>> eventsMap = (List<Map<String, Object>>) processingMap.get("response");
+        List<Map<String, Object>> eventsMap = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
         if (eventsMap != null) {
             for (Map<String, Object> eventsData : eventsMap) {
                 Map<String, Object> time = (Map<String, Object>) eventsData.get("time");
@@ -359,7 +360,7 @@ public class FootballController {
     }
 
     private void saveVenuesInfoToDatabase() {
-        List<Map<String, Object>> venues = (List<Map<String, Object>>) processingMap.get("response");
+        List<Map<String, Object>> venues = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
         if (venues != null) {
             for (Map<String, Object> venueData : venues) {
                 VenuesInfo venue = new VenuesInfo();
@@ -378,7 +379,7 @@ public class FootballController {
     }
 
     private void savePlayersSquadsToDatabase() {
-        List<Map<String, Object>> squads = (List<Map<String, Object>>) processingMap.get("response");
+        List<Map<String, Object>> squads = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
         if (squads != null) {
             for (Map<String, Object> squadsData : squads) {
                 Map<String, Object> teamData = (Map<String, Object>) squadsData.get("team");
@@ -411,7 +412,7 @@ public class FootballController {
     }
 
     private void saveStatisticsToDatabase(long fixtureId) {
-        List<Map<String, Object>> statistics = (List<Map<String, Object>>) processingMap.get("response");
+        List<Map<String, Object>> statistics = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
         if (statistics != null) {
             for (Map<String, Object> statisticsData : statistics) {
                 Map<String, Object> team = (Map<String, Object>) statisticsData.get("team");
@@ -550,7 +551,7 @@ public class FootballController {
     }
 
     private List<Map<String, Object>> getFixturesFromData(Map<String, Object> data) {
-        return (List<Map<String, Object>>) data.get("response");
+        return (List<Map<String, Object>>) data.get(RESPONSE_KEY);
     }
 
     private void saveFixtureToDatabase(Map<String, Object> fixtureData) {
