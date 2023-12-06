@@ -32,25 +32,16 @@ public class FootballController {
     private final SubstitutesLineupsRepository substitutesLineupsRepository;
 
     @Autowired
-    public FootballController(
-            FixtureRepository fixtureRepository,
-            TeamsStatisticsRepository teamStatisticsRepository,
-            PlayersSquadsRepository playersSquadsRepository,
-            VenuesInfoRepository venuesInfoRepository,
-            EventsRepository eventsRepository,
-            HeadToHeadRepository headToHeadRepository,
-            MainLineupsRepository mainLineupsRepository,
-            StartXILineupsRepository startXILineupsRepository,
-            SubstitutesLineupsRepository substitutesLineupsRepository) {
-        this.fixtureRepository = fixtureRepository;
-        this.teamStatisticsRepository = teamStatisticsRepository;
-        this.playersSquadsRepository = playersSquadsRepository;
-        this.venuesInfoRepository = venuesInfoRepository;
-        this.eventsRepository = eventsRepository;
-        this.headToHeadRepository = headToHeadRepository;
-        this.mainLineupsRepository = mainLineupsRepository;
-        this.startXILineupsRepository = startXILineupsRepository;
-        this.substitutesLineupsRepository = substitutesLineupsRepository;
+    public FootballController(RepositoryContainer repositoryContainer) {
+        this.fixtureRepository = repositoryContainer.getFixtureRepository();
+        this.teamStatisticsRepository = repositoryContainer.getTeamStatisticsRepository();
+        this.playersSquadsRepository = repositoryContainer.getPlayersSquadsRepository();
+        this.venuesInfoRepository = repositoryContainer.getVenuesInfoRepository();
+        this.eventsRepository = repositoryContainer.getEventsRepository();
+        this.headToHeadRepository = repositoryContainer.getHeadToHeadRepository();
+        this.mainLineupsRepository = repositoryContainer.getMainLineupsRepository();
+        this.startXILineupsRepository = repositoryContainer.getStartXILineupsRepository();
+        this.substitutesLineupsRepository = repositoryContainer.getSubstitutesLineupsRepository();
     }
 
     private LocalDateTime lastUpdateTimestamp;
@@ -71,9 +62,8 @@ public class FootballController {
     private static final String NUMBER_KEY = "number";
     private static final String PAGE_NOT_FOUND = "page_not_found";
     private static final Logger logger = LoggerFactory.getLogger(FootballController.class);
-    public Map<String, Object> fetchDataFromApi(String league, String season, String fromDate, String toDate) {
 
-        String endpoint = "fixtures?league=" + league + "&season=" + season + "&from=" + fromDate + "&to=" + toDate;
+    private Map<String, Object> fetchDataFromApi(String endpoint) {
         String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
 
         HttpResponse<JsonNode> response = Unirest.get(apiUrl)
@@ -84,77 +74,40 @@ public class FootballController {
 
         return response.getBody().getObject().toMap();
     }
+
+    public Map<String, Object> fetchFixtures(String league, String season, String fromDate, String toDate) {
+        String endpoint = "fixtures?league=" + league + "&season=" + season + "&from=" + fromDate + "&to=" + toDate;
+        return fetchDataFromApi(endpoint);
+    }
+
     public Map<String, Object> fetchFixtureStatistics(long fixtureId) {
         String endpoint = "fixtures/statistics?fixture=" + fixtureId;
-        String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
-
-        HttpResponse<JsonNode> response = Unirest.get(apiUrl)
-                .header("Accept", "application/json")
-                .header("x-rapidapi-key", apiKey)
-                .header("x-rapidapi-host", "v3.football.api-sports.io")
-                .asJson();
-
-        return response.getBody().getObject().toMap();
+        return fetchDataFromApi(endpoint);
     }
+
     public Map<String, Object> fetchPlayersSquads(long teamId) {
         String endpoint = "players/squads?team=" + teamId;
-        String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
-
-        HttpResponse<JsonNode> response = Unirest.get(apiUrl)
-                .header("Accept", "application/json")
-                .header("x-rapidapi-key", apiKey)
-                .header("x-rapidapi-host", "v3.football.api-sports.io")
-                .asJson();
-
-        return response.getBody().getObject().toMap();
+        return fetchDataFromApi(endpoint);
     }
+
     public Map<String, Object> fetchVenuesInfo(long venueId) {
         String endpoint = "/venues?id=" + venueId;
-        String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
-
-        HttpResponse<JsonNode> response = Unirest.get(apiUrl)
-                .header("Accept", "application/json")
-                .header("x-rapidapi-key", apiKey)
-                .header("x-rapidapi-host", "v3.football.api-sports.io")
-                .asJson();
-
-        return response.getBody().getObject().toMap();
+        return fetchDataFromApi(endpoint);
     }
+
     public Map<String, Object> fetchEvents(long fixtureId) {
         String endpoint = "/fixtures/events?fixture=" + fixtureId;
-        String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
-
-        HttpResponse<JsonNode> response = Unirest.get(apiUrl)
-                .header("Accept", "application/json")
-                .header("x-rapidapi-key", apiKey)
-                .header("x-rapidapi-host", "v3.football.api-sports.io")
-                .asJson();
-
-        return response.getBody().getObject().toMap();
+        return fetchDataFromApi(endpoint);
     }
+
     public Map<String, Object> fetchHeadToHead(long homeTeamId, long awayTeamId) {
         String endpoint = "/fixtures/headtohead?h2h=" + homeTeamId + "-" + awayTeamId + "&last=" + last;
-        String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
-
-        HttpResponse<JsonNode> response = Unirest.get(apiUrl)
-                .header("Accept", "application/json")
-                .header("x-rapidapi-key", apiKey)
-                .header("x-rapidapi-host", "v3.football.api-sports.io")
-                .asJson();
-
-        return response.getBody().getObject().toMap();
+        return fetchDataFromApi(endpoint);
     }
+
     public Map<String, Object> fetchLineups(long fixtureId) {
         String endpoint = "/fixtures/lineups?fixture=" + fixtureId;
-        String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
-
-        HttpResponse<JsonNode> response = Unirest.get(apiUrl)
-                .header("Accept", "application/json")
-                .header("x-rapidapi-key", apiKey)
-                .header("x-rapidapi-host", "v3.football.api-sports.io")
-                .asJson();
-
-        return response.getBody().getObject().toMap();
+        return fetchDataFromApi(endpoint);
     }
 
     public void processFixtureStatistics() {
@@ -516,138 +469,6 @@ public class FootballController {
         teamStatisticsRepository.save(teamStatistics);
     }
 
-//    private void saveStatisticsToDatabase(long fixtureId) {
-//        List<Map<String, Object>> statistics = (List<Map<String, Object>>) processingMap.get(RESPONSE_KEY);
-//        if (statistics != null) {
-//            for (Map<String, Object> statisticsData : statistics) {
-//                Map<String, Object> team = (Map<String, Object>) statisticsData.get("team");
-//                List<Map<String, Object>> statisticsList = (List<Map<String, Object>>) statisticsData.get("statistics");
-//
-//                TeamsStatistics teamStatistics = new TeamsStatistics();
-//                teamStatistics.setFixtureId(fixtureId);
-//                teamStatistics.setTeamId(Long.valueOf(String.valueOf(team.get("id"))));
-//                teamStatistics.setTeamName(String.valueOf(team.get("name")));
-//                for (Map<String, Object> statData : statisticsList) {
-//                    String type = (String) statData.get("type");
-//                    String value = String.valueOf(statData.get("value"));
-//
-//                    switch (type) {
-//                        case "Shots on Goal":
-//                            teamStatistics.setShotsOnGoal(value);
-//                            break;
-//                        case "Shots off Goal":
-//                            teamStatistics.setShotsOffGoal(value);
-//                            break;
-//                        case "Total Shots":
-//                            teamStatistics.setTotalShots(value);
-//                            break;
-//                        case "Blocked Shots":
-//                            teamStatistics.setBlockedShots(value);
-//                            break;
-//                        case "Shots insidebox":
-//                            teamStatistics.setShotsInsidebox(value);
-//                            break;
-//                        case "Shots outsidebox":
-//                            teamStatistics.setShotsOutsidebox(value);
-//                            break;
-//                        case "Fouls":
-//                            teamStatistics.setFouls(value);
-//                            break;
-//                        case "Corner Kicks":
-//                            teamStatistics.setCornerKicks(value);
-//                            break;
-//                        case "Offsides":
-//                            teamStatistics.setOffsides(value);
-//                            break;
-//                        case "Ball Possession":
-//                            teamStatistics.setBallPossession(value);
-//                            break;
-//                        case "Yellow Cards":
-//                            teamStatistics.setYellowCards(value);
-//                            break;
-//                        case "Red Cards":
-//                            teamStatistics.setRedCards(value);
-//                            break;
-//                        case "Goalkeeper Saves":
-//                            teamStatistics.setGoalkeeperSaves(value);
-//                            break;
-//                        case "Total passes":
-//                            teamStatistics.setTotalPasses(value);
-//                            break;
-//                        case "Passes accurate":
-//                            teamStatistics.setPassesAccurate(value);
-//                            break;
-//                        case "Passes %":
-//                            teamStatistics.setPassesPrcnt(value);
-//                            break;
-//                        default:
-//                            logger.warn("Unhandled type: {}", type);
-//                            break;
-//                    }
-//                }
-//                teamStatisticsRepository.save(teamStatistics);
-//            }
-//        }
-//    }
-
-//    private void saveDataToDatabase(Map<String, Object> data) {
-//        fixtureRepository.deleteAll();
-//
-//        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) mainMapResult.get("response");
-//        if (fixtures != null) {
-//            for (Map<String, Object> fixtureData : fixtures) {
-//                Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
-//                Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
-//                Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
-//
-//                Fixture fixture = new Fixture();
-//                fixture.setId(Long.valueOf(String.valueOf(fixtureInfo.get("id"))));
-//                fixture.setDate(String.valueOf(fixtureInfo.get("date")));
-//                fixture.setHomeTeamName(String.valueOf(homeTeam.get("name")));
-//                fixture.setHomeTeamId(String.valueOf(homeTeam.get("id")));
-//                fixture.setAwayTeamName(String.valueOf(awayTeam.get("name")));
-//                fixture.setAwayTeamId(String.valueOf(awayTeam.get("id")));
-//
-//                fixture.setReferee(String.valueOf(fixtureInfo.get("referee")));
-//                Map<String, Object> fixtureStatus = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("status");
-//                if (fixtureStatus.get("long") != null) {
-//                    fixture.setStatus(String.valueOf(fixtureStatus.get("long")));
-//                }
-//                Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("venue");
-//                fixture.setVenueId(String.valueOf(venue.get("id")));
-//                if (venue.get("name") != null) {
-//                    fixture.setVenueName(String.valueOf(venue.get("name")));
-//                }
-//                if (venue.get("city") != null) {
-//                    fixture.setVenueCity(String.valueOf(venue.get("city")));
-//                }
-//                Map<String, Object> league = (Map<String, Object>) fixtureData.get("league");
-//                fixture.setLeagueName(String.valueOf(league.get("name")));
-//                fixture.setLeagueCountry(String.valueOf(league.get("country")));
-//                fixture.setLeagueLogo(String.valueOf(league.get("logo")));
-//                fixture.setLeagueFlag(String.valueOf(league.get("flag")));
-//                fixture.setHomeTeamLogo(String.valueOf(homeTeam.get("logo")));
-//                if (homeTeam.get("winner") != null) {
-//                    fixture.setHomeTeamWinner(String.valueOf(homeTeam.get("winner").toString()));
-//                }
-//                fixture.setAwayTeamLogo(String.valueOf(awayTeam.get("logo")));
-//                if (awayTeam.get("winner") != null) {
-//                    fixture.setAwayTeamWinner(String.valueOf(awayTeam.get("winner").toString()));
-//                }
-//                Map<String, Object> goals = (Map<String, Object>) fixtureData.get("goals");
-//                if (goals != null) {
-//                    if (goals.get("home") != null) {
-//                        fixture.setHomeGoals(Integer.parseInt(goals.get("home").toString()));
-//                    }
-//                    if (goals.get("away") != null) {
-//                        fixture.setAwayGoals(Integer.parseInt(goals.get("away").toString()));
-//                    }
-//                }
-//                fixtureRepository.save(fixture);
-//            }
-//        }
-//    }
-
     private void saveDataToDatabase(Map<String, Object> data) {
         fixtureRepository.deleteAll();
 
@@ -739,7 +560,7 @@ public class FootballController {
 
     @Scheduled(fixedRate = 3600000)
     public void updateData() {
-        Map<String, Object> newData = fetchDataFromApi(league, season, fromDate, toDate);
+        Map<String, Object> newData = fetchFixtures(league, season, fromDate, toDate);
 
         if (!newData.equals(mainMapResult)) {
             saveDataToDatabase(newData);
@@ -750,19 +571,19 @@ public class FootballController {
 
     @GetMapping("/matches")
     public String showMatches(Model model) {
-//        if (isDataStale()) {
-//            mainMapResult = fetchDataFromApi(league, season, fromDate, toDate);
-//            if (mainMapResult != null) {
-//                saveDataToDatabase(mainMapResult);
-//                processFixtureStatistics();
-//                processPlayersSquads();
-//                processVenuesInfo();
-//                processEvents();
-//                processHeadToHead();
-//                processLineups();
-//                lastUpdateTimestamp = LocalDateTime.now();
-//            }
-//        }
+        if (isDataStale()) {
+            mainMapResult = fetchFixtures(league, season, fromDate, toDate);
+            if (mainMapResult != null) {
+                saveDataToDatabase(mainMapResult);
+                processFixtureStatistics();
+                processPlayersSquads();
+                processVenuesInfo();
+                processEvents();
+                processHeadToHead();
+                processLineups();
+                lastUpdateTimestamp = LocalDateTime.now();
+            }
+        }
 
         List<Fixture> matches = fixtureRepository.findAll();
 
@@ -846,35 +667,6 @@ public class FootballController {
         }
     }
 
-//    @GetMapping("/lineups/{id}")
-//    public String showLineups(@PathVariable("id") Long id, Model model) {
-//        List<MainLineups> mainLineups = mainLineupsRepository.findByFixtureId(id);
-//
-//        if (!mainLineups.isEmpty()) {
-//            Long teamId1 = mainLineups.get(0).getTeamId();
-//
-//            List<MainLineups> mainLineupsTeam1 = mainLineupsRepository.findByFixtureIdAndTeamId(id, teamId1);
-//            List<StartXILineups> startXILineupsTeam1 = startXILineupsRepository.findByFixtureIdAndTeamId(id, teamId1);
-//            List<SubstitutesLineups> substitutesLineupsTeam1 = substitutesLineupsRepository.findByFixtureIdAndTeamId(id, teamId1);
-//
-//            Long teamId2 = mainLineups.get(1).getTeamId();
-//
-//            List<MainLineups> mainLineupsTeam2 = mainLineupsRepository.findByFixtureIdAndTeamId(id, teamId2);
-//            List<StartXILineups> startXILineupsTeam2 = startXILineupsRepository.findByFixtureIdAndTeamId(id, teamId2);
-//            List<SubstitutesLineups> substitutesLineupsTeam2 = substitutesLineupsRepository.findByFixtureIdAndTeamId(id, teamId2);
-//
-//            model.addAttribute("mainLineupsTeam1", mainLineupsTeam1);
-//            model.addAttribute("mainLineupsTeam2", mainLineupsTeam2);
-//            model.addAttribute("startXILineupsTeam1", startXILineupsTeam1);
-//            model.addAttribute("substitutesLineupsTeam1", substitutesLineupsTeam1);
-//            model.addAttribute("startXILineupsTeam2", startXILineupsTeam2);
-//            model.addAttribute("substitutesLineupsTeam2", substitutesLineupsTeam2);
-//
-//            return "lineups";
-//        } else {
-//            return "match_not_found";
-//        }
-//    }
     @GetMapping("/lineups/{id}")
     public String showLineups(@PathVariable("id") Long id, Model model) {
         List<MainLineups> mainLineups = mainLineupsRepository.findByFixtureId(id);
@@ -977,150 +769,4 @@ public class FootballController {
         return fieldPlayers;
     }
 
-
-//    @GetMapping("/lineups/{id}")
-//    public String showLineups(@PathVariable("id") Long id, Long teamId, Model model) {
-//        System.out.println("Fixture ID: " + id);
-//        System.out.println("Team ID: " + teamId);
-//
-//        List<MainLineups> mainLineups = mainLineupsRepository.findByFixtureId(id);
-//        List<StartXILineups> startXILineups = startXILineupsRepository.findByFixtureIdAndTeamId(id, teamId);
-//        List<SubstitutesLineups> substitutesLineups = substitutesLineupsRepository.findByFixtureIdAndTeamId(id, teamId);
-//
-//        if (!mainLineups.isEmpty()) {
-//            System.out.println("Main Lineups:");
-//            for (MainLineups lineup : mainLineups) {
-//                System.out.println(lineup);
-//            }
-//
-//            System.out.println("Start XI Lineups:");
-//            for (StartXILineups startXILineup : startXILineups) {
-//                System.out.println(startXILineup);
-//            }
-//
-//            System.out.println("Substitutes Lineups:");
-//            for (SubstitutesLineups substitutesLineup : substitutesLineups) {
-//                System.out.println(substitutesLineup);
-//            }
-//
-//            model.addAttribute("mainLineups", mainLineups);
-//            model.addAttribute("startXILineups", startXILineups);
-//            model.addAttribute("substitutesLineups", substitutesLineups);
-//            return "lineups";
-//        } else {
-//            return "match_not_found";
-//        }
-//    }
 }
-
-//@Controller
-//public class FootballController {
-//    @Autowired
-//    private FixtureRepository fixtureRepository;
-//
-//    @GetMapping("/leagues")
-//    @ResponseBody
-//    @Cacheable(value = "fixturesCache", key = "'fixtures'", unless = "#result == null")
-//    public Map<String, Object> leagues() {
-//        String apiKey = "739fbef17c8cda1256722a1d0ae58ba3";
-//
-//        String endpoint = "fixtures?league=135&season=2023&from=2023-10-30&to=2023-11-05";
-//
-//        String apiUrl = "https://v3.football.api-sports.io/" + endpoint;
-//
-//        HttpResponse<JsonNode> response = Unirest.get(apiUrl)
-//                .header("Accept", "application/json")
-//                .header("x-rapidapi-key", apiKey)
-//                .header("x-rapidapi-host", "v3.football.api-sports.io")
-//                .asJson();
-//
-//        Map<String, Object> result = response.getBody().getObject().toMap();
-//
-//        List<Map<String, Object>> fixtures = (List<Map<String, Object>>) result.get("response");
-//        for (Map<String, Object> fixtureData : fixtures) {
-//            Map<String, Object> fixtureInfo = (Map<String, Object>) fixtureData.get("fixture");
-//            Map<String, Object> homeTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("home");
-//            Map<String, Object> awayTeam = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("teams")).get("away");
-//
-//            Fixture fixture = new Fixture();
-//            fixture.setId(Long.valueOf(String.valueOf(fixtureInfo.get("id"))));
-//            fixture.setDate(String.valueOf(fixtureInfo.get("date")));
-//            fixture.setHomeTeamName(String.valueOf(homeTeam.get("name")));
-//            fixture.setAwayTeamName(String.valueOf(awayTeam.get("name")));
-//
-//            fixture.setReferee(String.valueOf(fixtureInfo.get("referee")));
-//            Map<String, Object> fixtureStatus = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("status");
-//            if (fixtureStatus.get("long") != null) {
-//                fixture.setStatus(String.valueOf(fixtureStatus.get("long")));
-//            }
-//
-//            Map<String, Object> venue = (Map<String, Object>) ((Map<String, Object>) fixtureData.get("fixture")).get("venue");
-//            if (venue.get("name") != null) {
-//                fixture.setVenueName(String.valueOf(venue.get("name")));
-//            }
-//            if (venue.get("city") != null) {
-//                fixture.setVenueCity(String.valueOf(venue.get("city")));
-//            }
-//
-//            Map<String, Object> league = (Map<String, Object>) fixtureData.get("league");
-//            fixture.setLeagueName(String.valueOf(league.get("name")));
-//            fixture.setLeagueCountry(String.valueOf(league.get("country")));
-//            fixture.setLeagueLogo(String.valueOf(league.get("logo")));
-//            fixture.setLeagueFlag(String.valueOf(league.get("flag")));
-//            fixture.setHomeTeamLogo(String.valueOf(homeTeam.get("logo")));
-//
-//            if (homeTeam.get("winner") != null) {
-//                fixture.setHomeTeamWinner(String.valueOf(homeTeam.get("winner").toString()));
-//            }
-//            fixture.setAwayTeamLogo(String.valueOf(awayTeam.get("logo")));
-//            if (awayTeam.get("winner") != null) {
-//                fixture.setAwayTeamWinner(String.valueOf(awayTeam.get("winner").toString()));
-//            }
-//
-//            Map<String, Object> goals = (Map<String, Object>) fixtureData.get("goals");
-//            if (goals != null) {
-//                if (goals.get("home") != null) {
-//                    fixture.setHomeGoals(Integer.parseInt(goals.get("home").toString()));
-//                }
-//
-//                if (goals.get("away") != null) {
-//                    fixture.setAwayGoals(Integer.parseInt(goals.get("away").toString()));
-//                }
-//            }
-//
-//            fixtureRepository.save(fixture);
-//        }
-//
-//        return result;
-//    }
-//
-//    @GetMapping("/matches")
-//    public String showMatches(Model model) {
-//        List<Fixture> matches = fixtureRepository.findAll();
-//        model.addAttribute("matches", matches);
-//        return "matches";
-//    }
-//    @GetMapping("/leagues")
-//    @ResponseBody
-//    public Map<String, Object> leagues() {
-//        result = fetchDataFromApi(league, season, fromDate, toDate);
-//
-//        return result;
-//    }
-//
-//    @GetMapping("/match/{id}")
-//    public String showMatchDetails(@PathVariable("id") Long id, Model model) {
-//        Optional<Fixture> match = fixtureRepository.findById(id);
-//        if (match.isPresent()) {
-//            model.addAttribute("match", match.get());
-//            return "match_details";
-//        } else {
-//            return null;
-//        }
-//    }
-//
-//    @Scheduled(fixedRate = 24 * 60 * 60 * 1000)
-//    public void leaguesScheduledUpdate() {
-//        leagues();
-//    }
-//}
