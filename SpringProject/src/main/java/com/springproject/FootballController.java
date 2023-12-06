@@ -605,8 +605,6 @@ public class FootballController {
     @GetMapping("/match/{id}")
     public String showMatchDetails(@PathVariable("id") Long id, Model model) {
         List<TeamsStatistics> matchStatistics = teamStatisticsRepository.findByFixtureId(id);
-        //System.out.println("matchStatistics size: " + matchStatistics.size());
-        //matchStatistics.forEach(stat -> System.out.println("TeamName: " + stat.getTeamName() + ", ShotsOnGoal: " + stat.getShotsOnGoal() + ", YellowCard: " + stat.getYellowCards()+ ", TotalShots: " + stat.getTotalShots()));
         if (!matchStatistics.isEmpty()) {
             model.addAttribute("matchStatistics", matchStatistics);
             return "match_details";
